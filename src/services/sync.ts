@@ -29,12 +29,13 @@ export class SyncService {
       // 0. Sync License
       await LicenseService.syncLicense();
 
-      // 1. Push local changes
+      // 1. Push local changes (Sequential for dependent tables to avoid FK errors)
+      await this.pushTable('shops', db.shops);
+      await this.pushTable('users', db.users);
+      await this.pushTable('products', db.products);
+      await this.pushTable('sales', db.sales); // Push sales BEFORE sale_items
+      
       await Promise.allSettled([
-        this.pushTable('shops', db.shops),
-        this.pushTable('users', db.users),
-        this.pushTable('products', db.products),
-        this.pushTable('sales', db.sales),
         this.pushTable('sale_items', db.saleItems),
         this.pushTable('expenses', db.expenses),
         this.pushTable('features', db.features),

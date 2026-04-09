@@ -2,7 +2,9 @@ import { db } from '../db';
 import { useStore } from '../store';
 import { subHours, startOfDay, endOfDay, isWithinInterval, format } from 'date-fns';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { PushNotifications, type Token, type PushNotificationSchema, type ActionPerformed } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
+import { supabase } from '../supabase';
 
 class NotificationService {
   private static instance: NotificationService;
@@ -19,8 +21,9 @@ class NotificationService {
 
   public async requestPermission(): Promise<boolean> {
     if (Capacitor.isNativePlatform()) {
-      const status = await LocalNotifications.requestPermissions();
-      return status.display === 'granted';
+      const localStatus = await LocalNotifications.requestPermissions();
+      const pushStatus = await PushNotifications.requestPermissions();
+      return localStatus.display === 'granted' && pushStatus.receive === 'granted';
     }
 
     if (!('Notification' in window)) {
@@ -38,6 +41,64 @@ class NotificationService {
     }
 
     return false;
+  }
+
+  public async initPushNotifications() {
+    if (!Capacitor.isNativePlatform()) return;
+
+    // Request permissions
+    const status = await PushNotifications.requestPermissions();
+    if (status.receive !== 'granted') return;
+
+    // Register with Apple / Google
+    await PushNotifications.register();
+
+    // On success, we should be able to receive notifications
+    PushNotifications.addListener('registration', async (token: Token) => {
+      console.log('Push registration success, token: ' + token.value);
+      await this.savePushToken(token.value);
+    });
+
+    // Some issue with our setup and push will not work
+    PushNotifications.addListener('registrationError', (error: any) => {
+      console.error('Error on registration: ' + JSON.stringify(error));
+    });
+
+    // Show us the notification payload if the app is open on our device
+    PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
+      console.log('Push received: ' + JSON.stringify(notification));
+      // We can also show a local notification if we want to be sure
+      this.sendNotification(notification.title || 'Taarifa Mpya', notification.body || '');
+    });
+
+    // Method called when tapping on a notification
+    PushNotifications.addListener('pushNotificationActionPerformed', (notification: ActionPerformed) => {
+      console.log('Push action performed: ' + JSON.stringify(notification));
+    });
+  }
+
+  private async savePushToken(token: string) {
+    const user = useStore.getState().user;
+    if (!user?.id) return;
+
+    try {
+      // 1. Update local Dexie
+      await db.users.update(user.id, { 
+        fcm_token: token,
+        synced: 0,
+        updated_at: new Date().toISOString()
+      });
+
+      // 2. Update Supabase directly for immediate effect
+      await supabase
+        .from('users')
+        .update({ fcm_token: token })
+        .eq('id', user.id);
+
+      console.log('Push token saved successfully');
+    } catch (error) {
+      console.error('Failed to save push token:', error);
+    }
   }
 
   public async sendNotification(title: string, body: string, id: number = Math.floor(Math.random() * 10000)) {

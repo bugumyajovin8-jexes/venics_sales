@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
-import { Store, ArrowRight, Loader2, Users } from 'lucide-react';
+import { Store, ArrowRight, Loader2, Users, RefreshCw } from 'lucide-react';
 import { supabase } from '../supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { SyncService } from '../services/sync';
@@ -69,6 +69,7 @@ export default function SetupShop() {
         .from('users')
         .update({
           shop_id: shopId,
+          role: 'boss',
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -80,7 +81,7 @@ export default function SetupShop() {
         ...user,
         shop_id: shopId,
         shopId: shopId,
-        role: 'admin' as const,
+        role: 'boss' as const,
         isActive: true,
         status: 'active' as const,
         synced: 1
@@ -102,12 +103,59 @@ export default function SetupShop() {
     }
   };
 
+  const [isChecking, setIsChecking] = useState(false);
+
+  const checkInvitationManual = async () => {
+    if (!user?.email || isChecking) return;
+    setIsChecking(true);
+    try {
+      const { data: invitation, error } = await supabase
+        .from('shop_invitations')
+        .select('*')
+        .eq('email', user.email.toLowerCase())
+        .maybeSingle();
+
+      if (invitation) {
+        // Update user profile
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            shop_id: invitation.shop_id,
+            role: invitation.role
+          })
+          .eq('id', user.id);
+
+        if (!updateError) {
+          await supabase.from('shop_invitations').delete().eq('id', invitation.id);
+          
+          const updatedUser = {
+            ...user,
+            shop_id: invitation.shop_id,
+            shopId: invitation.shop_id,
+            role: invitation.role as any
+          };
+          
+          await db.users.put(updatedUser as any);
+          setAuth(token!, updatedUser);
+          navigate('/');
+        }
+      } else {
+        setError('Mwaliko bado haujapatikana. Hakikisha bosi wako ametumia email hii kwa usahihi.');
+        setTimeout(() => setError(''), 5000);
+      }
+    } catch (err) {
+      console.error('Manual check error:', err);
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   if (isEmployeeMode) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
         <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md text-center">
           <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Loader2 className="w-10 h-10 animate-spin" />
+            {isChecking ? <Loader2 className="w-10 h-10 animate-spin" /> : <Users className="w-10 h-10" />}
           </div>
           
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Unasubiri Mwaliko...</h1>
@@ -116,9 +164,24 @@ export default function SetupShop() {
             <span className="font-bold text-blue-600">{user?.email}</span>
           </p>
 
-          <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-blue-700 text-sm mb-8">
-            Pindi bosi wako atakapokuongeza, programu itajifungua yenyewe ndani ya sekunde chache.
+          <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-blue-700 text-sm mb-6">
+            Pindi bosi wako atakapokuongeza, programu itajifungua yenyewe. Unaweza pia kubonyeza kitufe hapa chini kukagua sasa hivi.
           </div>
+
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs">
+              {error}
+            </div>
+          )}
+
+          <button 
+            onClick={checkInvitationManual}
+            disabled={isChecking}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 mb-6"
+          >
+            {isChecking ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+            Kagua Mwaliko Sasa
+          </button>
 
           <button 
             onClick={() => { setIsEmployeeMode(false); setError(''); }}

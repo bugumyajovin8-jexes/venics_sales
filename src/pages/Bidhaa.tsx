@@ -226,9 +226,11 @@ export default function Bidhaa() {
   };
 
   const handleDeleteAll = () => {
-    showConfirm('Futa Bidhaa Zote', 'Je, una uhakika unataka kufuta bidhaa ZOTE? Kitendo hiki hakiwezi kutenguliwa.', () => {
-      showConfirm('Thibitisha Tena', 'Tafadhali thibitisha tena: Futa bidhaa zote?', async () => {
+    showConfirm('Futa Bidhaa Zote', 'Je, una uhakika unataka kufuta bidhaa ZOTE? Kitendo hiki hakiwezi kutenguliwa na kitafuta bidhaa zote zilizopo.', async () => {
+      try {
         const productIds = products.map(p => p.id).filter((id): id is string => !!id);
+        const count = productIds.length;
+        
         await Promise.all(productIds.map(id => 
           db.products.update(id, { 
             isDeleted: 1, 
@@ -236,8 +238,16 @@ export default function Bidhaa() {
             updated_at: new Date().toISOString() 
           })
         ));
+        
+        // Log action
+        await SyncService.logAction('delete_all_products', { count });
+        
         SyncService.sync();
-      });
+        showAlert('Imefanikiwa', `Bidhaa zote ${count} zimefutwa kikamilifu.`);
+      } catch (err) {
+        console.error('Failed to delete all products:', err);
+        showAlert('Kosa', 'Imeshindwa kufuta bidhaa zote. Tafadhali jaribu tena.');
+      }
     });
   };
 

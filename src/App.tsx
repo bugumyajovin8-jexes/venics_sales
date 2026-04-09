@@ -17,6 +17,8 @@ import AuditLogs from './pages/AuditLogs';
 import ExecutiveDashboard from './pages/ExecutiveDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import SetupShop from './pages/SetupShop';
 import LicenseGuard from './components/LicenseGuard';
 import { supabase } from './supabase';
@@ -70,7 +72,15 @@ export default function App() {
   const updateUser = useStore(state => state.updateUser);
   const logout = useStore(state => state.logout);
   const settings = useLiveQuery(() => db.settings.get(1));
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      notifications.initPushNotifications();
+      notifications.startService();
+    } else {
+      notifications.stopService();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     // Listen to Supabase auth state changes
@@ -133,15 +143,13 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated && user?.id) {
       const checkStatus = async () => {
-        if (isCheckingStatus) return;
-        setIsCheckingStatus(true);
         try {
           // Master Switch: Check both user status and shop status in one query
           const { data: userData, error } = await supabase
             .from('users')
             .select('status, role, shop_id, shop:shops(status)')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
           if (userData && !error) {
             const isUserActive = userData.status === 'active';
@@ -170,7 +178,7 @@ export default function App() {
                 .from('shop_invitations')
                 .select('*')
                 .eq('email', user.email.toLowerCase())
-                .single();
+                .maybeSingle();
 
               if (invitation) {
                 // Update user profile with invitation data
@@ -198,8 +206,6 @@ export default function App() {
           }
         } catch (e) {
           console.error('Failed to check user status', e);
-        } finally {
-          setIsCheckingStatus(false);
         }
       };
 
@@ -210,7 +216,7 @@ export default function App() {
       const interval = setInterval(checkStatus, 30000);
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated, user?.id, user?.isActive, setAuth, isCheckingStatus]);
+  }, [isAuthenticated, user?.id, user?.isActive, user?.role, user?.shop_id, user?.email]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -244,6 +250,8 @@ export default function App() {
     return (
       <Routes>
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );

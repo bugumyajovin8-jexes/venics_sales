@@ -64,12 +64,12 @@ export default function Login() {
             id: authData.user.id,
             email: authData.user.email || email,
             name: email.split('@')[0],
-            role: 'boss', // Default to boss for recovery
+            role: null, // Don't assume boss anymore, let them go to setup-shop if no role
             status: 'active',
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' })
           .select()
-          .single();
+          .maybeSingle();
           
         if (createError && !createError.message.includes('duplicate key')) {
           console.error('Failed to self-heal profile:', createError);
@@ -82,7 +82,7 @@ export default function Login() {
             .from('users')
             .select('*')
             .eq('id', authData.user.id)
-            .single();
+            .maybeSingle();
           userData = retryData;
         } else {
           userData = newProfile;
@@ -201,6 +201,15 @@ export default function Login() {
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
+          </div>
+
+          <div className="flex justify-end">
+            <Link 
+              to="/forgot-password" 
+              className="text-xs font-bold text-blue-600 hover:underline"
+            >
+              Nimesahau nenosiri?
+            </Link>
           </div>
 
           {displayError && <p className="text-red-500 text-sm mt-2">{displayError}</p>}

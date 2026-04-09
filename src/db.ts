@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { encrypt, decrypt } from './utils/encryption';
+import { decrypt } from './utils/encryption';
 
 export interface Shop {
   id: string;
@@ -28,6 +28,7 @@ export interface User {
   isActive?: boolean; // Alias for compatibility
   last_seen?: string;
   is_deleted?: boolean; // Remote field
+  fcm_token?: string; // For push notifications
   isDeleted: number;
   created_at: string;
   updated_at: string;
@@ -130,7 +131,7 @@ export interface AuditLog {
   shop_id: string;
   user_id: string;
   user_name?: string;
-  action: 'add_product' | 'edit_product' | 'import_products' | 'delete_product' | 'refund_sale' | 'add_expense';
+  action: 'add_product' | 'edit_product' | 'import_products' | 'delete_product' | 'delete_all_products' | 'refund_sale' | 'add_expense';
   details: any;
   isDeleted: number; // 0 for false, 1 for true
   created_at: string;
@@ -189,7 +190,7 @@ export class PosDatabase extends Dexie {
       debtPayments: 'id, shop_id, sale_id, synced, isDeleted'
     });
 
-    // Encryption Hooks
+    // Encryption Hooks (Reading only for backward compatibility)
     const sensitiveFields: Record<string, string[]> = {
       products: ['buy_price'],
       sales: ['total_profit'],
@@ -200,24 +201,6 @@ export class PosDatabase extends Dexie {
 
     Object.entries(sensitiveFields).forEach(([tableName, fields]) => {
       const table = this.table(tableName);
-
-      table.hook('creating', (primKey, obj) => {
-        fields.forEach(field => {
-          if (obj[field] !== undefined && typeof obj[field] === 'number') {
-            obj[field] = encrypt(obj[field]);
-          }
-        });
-      });
-
-      table.hook('updating', (mods, primKey, obj) => {
-        const newMods = { ...mods };
-        fields.forEach(field => {
-          if (newMods[field] !== undefined && typeof newMods[field] === 'number') {
-            newMods[field] = encrypt(newMods[field]);
-          }
-        });
-        return newMods;
-      });
 
       table.hook('reading', (obj) => {
         if (!obj) return obj;

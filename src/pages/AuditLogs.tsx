@@ -57,6 +57,7 @@ export default function AuditLogs() {
       case 'add_product': return 'Aliongeza Bidhaa';
       case 'edit_product': return 'Alihariri Bidhaa';
       case 'delete_product': return 'Alifuta Bidhaa';
+      case 'delete_all_products': return 'Alifuta Bidhaa Zote';
       case 'import_products': return 'Aliingiza Bidhaa (Excel)';
       case 'refund_sale': return 'Alirudisha Mauzo (Refund)';
       case 'add_expense': return 'Aliongeza Matumizi';
@@ -102,7 +103,11 @@ export default function AuditLogs() {
                   </div>
                   <div>
                     <p className="font-bold text-gray-900">{getActionText(log.action)}</p>
-                    <p className="text-sm text-gray-500 font-medium">{log.details?.name || 'Bidhaa isiyojulikana'}</p>
+                    <p className="text-sm text-gray-500 font-medium">
+                      {log.action === 'delete_all_products' 
+                        ? `Alifuta bidhaa ${log.details?.count || 0} kwa mkupuo`
+                        : (log.details?.name || 'Bidhaa isiyojulikana')}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">

@@ -58,7 +58,7 @@ export default function Register() {
         .from('shop_invitations')
         .select('*')
         .eq('email', email.toLowerCase())
-        .single();
+        .maybeSingle();
 
       // 3. Create user profile in 'users' table (using upsert to handle trigger race condition)
       const { error: insertError } = await supabase
@@ -67,7 +67,7 @@ export default function Register() {
           id: authData.user.id,
           email: authData.user.email || email,
           name: name.trim() || email.split('@')[0],
-          role: invitation?.role || 'boss',
+          role: invitation?.role || null,
           shop_id: invitation?.shop_id || null,
           status: 'active',
           updated_at: new Date().toISOString()
@@ -83,7 +83,7 @@ export default function Register() {
         id: authData.user.id,
         email: authData.user.email || email,
         name: name.trim() || email.split('@')[0],
-        role: (invitation?.role || 'boss') as any,
+        role: (invitation?.role || null) as any,
         shop_id: invitation?.shop_id || undefined,
         status: 'active' as const,
         isActive: true,
