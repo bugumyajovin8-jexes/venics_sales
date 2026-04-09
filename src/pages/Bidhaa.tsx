@@ -65,7 +65,7 @@ export default function Bidhaa() {
   const [formBuyPrice, setFormBuyPrice] = useState('');
   const [formSellPrice, setFormSellPrice] = useState('');
   const [formStock, setFormStock] = useState('');
-  const [formLowStock, setFormLowStock] = useState('');
+  const [formLowStock, setFormLowStock] = useState('5');
   const [formExpiryDate, setFormExpiryDate] = useState('');
   const [formNotifyDays, setFormNotifyDays] = useState('30');
 
@@ -199,7 +199,7 @@ export default function Bidhaa() {
       setFormBuyPrice('');
       setFormSellPrice('');
       setFormStock('');
-      setFormLowStock('');
+      setFormLowStock('5');
       setFormExpiryDate('');
       setFormNotifyDays('30');
       SyncService.sync();
@@ -396,7 +396,7 @@ export default function Bidhaa() {
               setFormBuyPrice('');
               setFormSellPrice('');
               setFormStock('');
-              setFormLowStock('');
+              setFormLowStock('5');
               setFormExpiryDate('');
               setFormNotifyDays('30');
             }}
