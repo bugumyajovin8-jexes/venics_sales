@@ -72,10 +72,8 @@ export class LicenseService {
     
     if (now > license.expiryDate) return { status: 'EXPIRED', daysRemaining };
     
-    // 3. Forced Sync: If it's been more than 5 days since the last sync, require a sync
-    if (now - license.lastVerifiedAt > fiveDays) return { status: 'SYNC_REQUIRED', daysRemaining };
-
-    // Update lastVerifiedAt locally to track time progress.
+    // 3. Update lastVerifiedAt locally to track time progress.
+    // This maintains the monotonic clock to prevent date rollbacks even when offline.
     if (now > license.lastVerifiedAt) {
       await db.license.update(1, { lastVerifiedAt: now });
     }

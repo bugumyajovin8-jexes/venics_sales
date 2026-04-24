@@ -3,16 +3,18 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Product } from '../db';
 import { formatCurrency } from '../utils/format';
 import { getValidStock } from '../utils/stock';
-import { Plus, Search, Edit, Trash2, AlertCircle, FileDown, Upload, Clock, Calendar } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, AlertCircle, FileDown, Upload, Clock, Calendar, Camera, Zap, Send, RefreshCw, TrendingUp } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from '../store';
 import { SyncService } from '../services/sync';
 import ExcelImportModal from '../components/ExcelImportModal';
+import AIScanModal from '../components/AIScanModal';
+import StockAuditModal from '../components/StockAuditModal';
 import { format, isAfter, isBefore, addDays } from 'date-fns';
 import { List, RowComponentProps } from 'react-window';
 
 export default function Bidhaa() {
-  const { user, showAlert, showConfirm, isBoss, isFeatureEnabled } = useStore();
+  const { user, showAlert, showConfirm, showToast, isBoss, isFeatureEnabled } = useStore();
   const settings = useLiveQuery(() => db.settings.get(1));
   const shop = useLiveQuery(() => user?.shopId ? db.shops.get(user.shopId) : Promise.resolve(undefined), [user?.shopId]);
   const currency = settings?.currency || 'TZS';
@@ -38,6 +40,11 @@ export default function Bidhaa() {
   
   const [isAdding, setIsAdding] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isAIScanModalOpen, setIsAIScanModalOpen] = useState(false);
+  const [isStockAuditModalOpen, setIsStockAuditModalOpen] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [quickAddText, setQuickAddText] = useState('');
+  const [isProcessingQuickAdd, setIsProcessingQuickAdd] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [stockModalProduct, setStockModalProduct] = useState<Product | null>(null);
   const [batchModalProduct, setBatchModalProduct] = useState<Product | null>(null);
@@ -365,6 +372,78 @@ export default function Bidhaa() {
     setExpiryDate('');
   };
 
+  const handleQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickAddText.trim() || isProcessingQuickAdd) return;
+
+    setIsProcessingQuickAdd(true);
+    try {
+      const text = quickAddText.trim();
+      
+      // Smart parsing: Extract name and numbers
+      // Format: "Name BuyPrice SellPrice Stock"
+      const parts = text.split(/\s+/);
+      
+      // Try to find numbers at the end
+      let numbers: number[] = [];
+      let nameParts: string[] = [];
+      
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const num = Number(parts[i].replace(/,/g, ''));
+        if (!isNaN(num) && numbers.length < 3) {
+          numbers.unshift(num);
+        } else {
+          nameParts = parts.slice(0, i + 1);
+          break;
+        }
+      }
+
+      const name = nameParts.join(' ');
+      
+      if (!name || numbers.length < 2) {
+        throw new Error('Matabiri ya kosa: Andika "Jina Bei_Kununua Bei_Kuuza Stock". Mfano: Soda 500 700 24');
+      }
+
+      const buyPrice = numbers[0];
+      const sellPrice = numbers[1];
+      const stock = numbers[2] || 0;
+
+      const product: Product = {
+        id: uuidv4(),
+        shop_id: user?.shopId || '',
+        name: name,
+        buy_price: buyPrice,
+        sell_price: sellPrice,
+        stock: stock,
+        min_stock: 5,
+        unit: 'pcs',
+        stock_delta: stock,
+        batches: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        synced: 0,
+        isDeleted: 0
+      };
+
+      await db.products.put(product);
+      SyncService.logAction('add_product', { 
+        product_id: product.id, 
+        name: product.name,
+        stock: product.stock,
+        sell_price: product.sell_price,
+        buy_price: product.buy_price
+      });
+      
+      SyncService.sync();
+      setQuickAddText('');
+      showToast(`Biashara "${name}" imeongezwa!`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Kuna tatizo wakati wa kuongeza bidhaa', 'error');
+    } finally {
+      setIsProcessingQuickAdd(false);
+    }
+  };
+
   if (isAdding || editingProduct) {
     if (!canManageProducts) {
       return (
@@ -495,52 +574,78 @@ export default function Bidhaa() {
   }
 
   return (
-    <div className="p-4 flex flex-col h-full">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Bidhaa Zote</h1>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-            Bidhaa: {products.length}
-          </p>
+    <div className="px-3 pt-2 pb-0 flex flex-col h-full bg-gray-50/30">
+      <div className="flex flex-col gap-1.5 mb-2">
+        <div className="flex items-center justify-between overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex items-center space-x-1.5">
+            {isBoss() && products.length > 0 && (
+              <button 
+                onClick={handleDeleteAll}
+                className="bg-red-50 text-red-600 p-2 rounded-full border border-red-100 shrink-0"
+                title="Futa Bidhaa Zote"
+              >
+                <Trash2 className="w-6 h-6" />
+              </button>
+            )}
+            {canManageProducts && (
+              <button 
+                onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+                className={`p-2 rounded-full border transition-colors shrink-0 ${isQuickAddOpen ? 'bg-orange-600 text-white border-orange-700' : 'bg-orange-50 text-orange-600 border-orange-100'}`}
+                title="Quick Add Mode (Chat)"
+              >
+                <Zap className="w-6 h-6" />
+              </button>
+            )}
+            {canManageProducts && (
+              <button 
+                onClick={() => setIsStockAuditModalOpen(true)}
+                className="bg-orange-50 text-orange-600 p-2 rounded-full border border-orange-100 shrink-0"
+                title="AI Stock Audit (Hesabu stock)"
+              >
+                <TrendingUp className="w-6 h-6" />
+              </button>
+            )}
+            {canManageProducts && (
+              <button 
+                onClick={() => setIsAIScanModalOpen(true)}
+                className="bg-green-50 text-green-600 p-2 rounded-full border border-green-100 shrink-0"
+                title="Sajili kwa AI Scan (Picha)"
+              >
+                <Camera className="w-6 h-6" />
+              </button>
+            )}
+            {canManageProducts && (
+              <button 
+                onClick={() => setIsImportModalOpen(true)}
+                className="bg-white text-gray-700 p-2 rounded-full border border-gray-100 shrink-0"
+                title="Ingiza kutoka Excel"
+              >
+                <Upload className="w-6 h-6" />
+              </button>
+            )}
+          </div>
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="bg-blue-600 text-white p-2.5 rounded-full shadow-lg hover:bg-blue-700 transition-all shrink-0 ml-1 active:scale-95"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
         </div>
-        <div className="flex space-x-2">
-          {isBoss() && products.length > 0 && (
-            <button 
-              onClick={handleDeleteAll}
-              className="bg-red-50 text-red-600 p-2 rounded-full shadow-sm border border-red-100 hover:bg-red-100 transition-colors"
-              title="Futa Bidhaa Zote"
-            >
-              <Trash2 className="w-6 h-6" />
-            </button>
-          )}
-          {canManageProducts && (
-            <button 
-              onClick={() => setIsImportModalOpen(true)}
-              className="bg-white text-gray-700 p-2 rounded-full shadow-md border border-gray-100 hover:bg-gray-50 transition-colors"
-              title="Ingiza kutoka Excel"
-            >
-              <Upload className="w-6 h-6" />
-            </button>
-          )}
-          {canManageProducts && (
-            <button 
-              onClick={() => setIsAdding(true)}
-              className="bg-blue-600 text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-6 h-6" />
-            </button>
-          )}
+        <div className="flex justify-center">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-white px-3 py-0.5 rounded-full border border-gray-100 shadow-sm leading-none">
+            Stock: <span className="text-gray-900">{products.length}</span>
+          </span>
         </div>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+      <div className="relative mb-2">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
         <input 
           type="text" 
           placeholder="Tafuta bidhaa..." 
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+          className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-blue-500 outline-none shadow-sm"
         />
       </div>
 
@@ -559,6 +664,37 @@ export default function Bidhaa() {
           </div>
         )}
       </div>
+
+      {isQuickAddOpen && (
+        <div className="fixed bottom-20 left-4 right-4 z-40 animate-in slide-in-from-bottom-4 duration-300">
+          <form 
+            onSubmit={handleQuickAdd}
+            className="bg-white p-3 rounded-2xl shadow-2xl border border-orange-100 flex items-center space-x-2"
+          >
+            <div className="bg-orange-100 p-2 rounded-xl">
+              <Zap className="w-5 h-5 text-orange-600" />
+            </div>
+            <input 
+              autoFocus
+              value={quickAddText}
+              onChange={(e) => setQuickAddText(e.target.value)}
+              placeholder="Soda 500 700 24"
+              className="flex-1 bg-transparent border-none outline-none text-sm font-bold placeholder:text-gray-300"
+              disabled={isProcessingQuickAdd}
+            />
+            <button 
+              type="submit"
+              disabled={!quickAddText.trim() || isProcessingQuickAdd}
+              className={`p-2 rounded-xl transition-all ${quickAddText.trim() ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-400'}`}
+            >
+              {isProcessingQuickAdd ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            </button>
+          </form>
+          <p className="text-[10px] text-gray-400 mt-2 px-2 italic">
+            Andika: <b>Jina Bei_Kununua Bei_Kuuza Stock</b> na bonyeza Enter.
+          </p>
+        </div>
+      )}
 
       {/* Stock Addition Modal */}
       {stockModalProduct && (
@@ -701,6 +837,30 @@ export default function Bidhaa() {
           isOpen={isImportModalOpen} 
           onClose={() => setIsImportModalOpen(false)} 
           shopId={user.shopId} 
+        />
+      )}
+
+      {/* AI Scan Onboarding Modal */}
+      {user?.shopId && (
+        <AIScanModal
+          isOpen={isAIScanModalOpen}
+          onClose={() => setIsAIScanModalOpen(false)}
+          shopId={user.shopId}
+          onSuccess={() => {
+            showToast('Bidhaa zako zimeongezwa kwa mafanikio!', 'success');
+          }}
+        />
+      )}
+
+      {/* Stock Audit Modal */}
+      {user?.shopId && (
+        <StockAuditModal
+          isOpen={isStockAuditModalOpen}
+          onClose={() => setIsStockAuditModalOpen(false)}
+          products={products}
+          onSuccess={(msg) => {
+            showToast(msg, 'success');
+          }}
         />
       )}
     </div>

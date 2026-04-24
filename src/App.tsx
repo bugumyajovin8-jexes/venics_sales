@@ -25,6 +25,7 @@ import { supabase } from './supabase';
 import { Lock, AlertTriangle } from 'lucide-react';
 import React from 'react';
 import { GlobalModal } from './components/GlobalModal';
+import ToastContainer from './components/ToastContainer';
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: any }> {
   constructor(props: any) {
@@ -223,10 +224,38 @@ export default function App() {
       // Initial sync
       SyncService.sync();
 
+      // Check for broadcast messages
+      const checkBroadcasts = async () => {
+        try {
+          const { data: messages } = await supabase
+            .from('broadcast_messages')
+            .select('*')
+            .eq('status', 'sent')
+            .or(`target_role.eq.all,target_role.eq.${user?.role},target_ids.cs.{${user?.id}}`)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (messages && messages.length > 0) {
+            const latestMsg = messages[0];
+            const lastSeenId = localStorage.getItem('last_broadcast_id');
+
+            if (latestMsg.id !== lastSeenId) {
+              useStore.getState().showAlert(latestMsg.title, latestMsg.body);
+              localStorage.setItem('last_broadcast_id', latestMsg.id);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to check broadcasts', e);
+        }
+      };
+
+      checkBroadcasts();
+
       // Sync every 30 seconds if online
       const interval = setInterval(() => {
         if (navigator.onLine) {
           SyncService.sync();
+          checkBroadcasts();
         }
       }, 30 * 1000);
 
@@ -234,6 +263,7 @@ export default function App() {
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible' && navigator.onLine) {
           SyncService.sync();
+          checkBroadcasts();
         }
       };
 
@@ -264,6 +294,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <GlobalModal />
+      <ToastContainer />
       <LicenseGuard>
         <div className={`flex flex-col h-screen bg-gray-50 ${settings?.darkMode ? 'dark' : ''}`}>
           <div className="flex-1 overflow-y-auto pb-16">

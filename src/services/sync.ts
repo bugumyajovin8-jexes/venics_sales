@@ -135,6 +135,15 @@ export class SyncService {
       } else {
         console.error(`Error syncing ${tableName} record ${record.id}:`, pushError);
         console.error(`Failed data for ${tableName}:`, dataToSync);
+        
+        // Show alert for critical sync failures if it's a feature toggle
+        if (tableName === 'features') {
+          useStore.getState().showAlert(
+            'Kosa la Sync', 
+            `Imeshindwa kusawazisha swichi: ${pushError.message}. Hakikisha database ina Unique Constraint na RLS sahihi.`
+          );
+        }
+
         if (pushError.message && (pushError.message.includes('column') || pushError.message.includes('not found'))) {
           console.warn(`Possible schema mismatch for ${tableName}. Please check if all columns exist in Supabase.`);
         }

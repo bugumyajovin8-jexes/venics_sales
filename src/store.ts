@@ -19,6 +19,7 @@ interface PosState {
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateQty: (productId: string, qty: number) => void;
+  updateCartItemPrice: (productId: string, price: number) => void;
   clearCart: () => void;
   cartTotal: () => number;
   cartProfit: () => number;
@@ -42,6 +43,11 @@ interface PosState {
   showAlert: (title: string, message: string) => void;
   showConfirm: (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => void;
   hideModal: () => void;
+
+  // Toast
+  toasts: { id: string; message: string; type: 'success' | 'error' | 'info' }[];
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  removeToast: (id: string) => void;
 }
 
 export const useStore = create<PosState>((set, get) => ({
@@ -75,6 +81,11 @@ export const useStore = create<PosState>((set, get) => ({
       )
     };
   }),
+  updateCartItemPrice: (productId, price) => set((state) => ({
+    cart: state.cart.map(item => 
+      item.id === productId ? { ...item, sell_price: price } : item
+    )
+  })),
   clearCart: () => set({ cart: [] }),
   cartTotal: () => get().cart.reduce((total, item) => total + (item.sell_price * item.qty), 0),
   cartProfit: () => get().cart.reduce((total, item) => total + ((item.sell_price - item.buy_price) * item.qty), 0),
@@ -128,6 +139,20 @@ export const useStore = create<PosState>((set, get) => ({
   }),
   hideModal: () => set((state) => ({
     modal: { ...state.modal, isOpen: false }
+  })),
+
+  toasts: [],
+  showToast: (message, type = 'success') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    set((state) => ({
+      toasts: [...state.toasts, { id, message, type }]
+    }));
+    setTimeout(() => {
+      get().removeToast(id);
+    }, 3000);
+  },
+  removeToast: (id) => set((state) => ({
+    toasts: state.toasts.filter((t) => t.id !== id)
   }))
 }));
 

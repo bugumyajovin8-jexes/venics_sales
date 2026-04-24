@@ -4,7 +4,7 @@ import { db, Sale, SaleItem } from '../db';
 import { useStore } from '../store';
 import { formatCurrency } from '../utils/format';
 import { getValidStock } from '../utils/stock';
-import { Plus, Minus, Trash2, Search, ShoppingBag, RefreshCw } from 'lucide-react';
+import { Plus, Minus, Trash2, Search, ShoppingBag, RefreshCw, Edit2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { addDays } from 'date-fns';
 import { SyncService } from '../services/sync';
@@ -17,8 +17,9 @@ export default function Kikapu() {
   const currency = settings?.currency || 'TZS';
   const isExpiryEnabled = shop?.enable_expiry === true;
   const [search, setSearch] = useState('');
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
-  const { cart, addToCart, removeFromCart, updateQty, clearCart, cartTotal, cartProfit, showAlert } = useStore();
+  const { cart, addToCart, removeFromCart, updateQty, updateCartItemPrice, clearCart, cartTotal, cartProfit, showAlert, showToast } = useStore();
   const products = useLiveQuery(async () => {
     if (!user?.shopId) return [];
     
@@ -38,6 +39,9 @@ export default function Kikapu() {
   }, [user?.shopId, deferredSearch, isExpiryEnabled]) || [];
   const [isCheckout, setIsCheckout] = useState(false);
   const [isCredit, setIsCredit] = useState(false);
+  const [isDiscountMode, setIsDiscountMode] = useState(false);
+  const [editingPriceItemId, setEditingPriceItemId] = useState<string | null>(null);
+  const [editingPriceValue, setEditingPriceValue] = useState<string>('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -57,7 +61,7 @@ export default function Kikapu() {
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [isCheckout, isDiscountMode]);
 
   const customerData = useLiveQuery(async () => {
     if (!user?.shopId) return { names: [], phones: new Map<string, string>() };
@@ -96,7 +100,18 @@ export default function Kikapu() {
   const filteredProducts = useMemo(() => {
     const s = deferredSearch.toLowerCase();
     return products
-      .filter(p => p.name && p.name.toLowerCase().includes(s) && p.stock > 0)
+      .filter(p => {
+        if (!p.name) return false;
+        const nameLower = p.name.toLowerCase();
+        if (s && !nameLower.includes(s)) return false;
+        if (selectedLetter) {
+          if (selectedLetter === '#') {
+            return !/^[a-zA-Z]/.test(p.name);
+          }
+          return nameLower.startsWith(selectedLetter.toLowerCase());
+        }
+        return p.stock > 0;
+      })
       .sort((a, b) => {
         const aName = (a.name || '').toLowerCase();
         const bName = (b.name || '').toLowerCase();
@@ -107,36 +122,138 @@ export default function Kikapu() {
         if (!aStarts && bStarts) return 1;
         return aName.localeCompare(bName);
       });
-  }, [products, deferredSearch]);
+  }, [products, deferredSearch, selectedLetter]);
+
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
 
   const ProductSelectionRow = ({ index, style }: RowComponentProps) => {
-    const product = filteredProducts[index];
-    if (!product) return null;
-    
-    const cartItem = cart.find(item => item.id === product.id);
-    const isAtMaxStock = cartItem ? cartItem.qty >= product.stock : false;
+    const productsInRow = [
+      filteredProducts[index * 2],
+      filteredProducts[index * 2 + 1]
+    ].filter(Boolean);
+
+    return (
+      <div style={style} className="px-1 flex gap-2">
+        {productsInRow.map(product => {
+          const cartItem = cart.find(item => item.id === product.id);
+          const isAtMaxStock = cartItem ? cartItem.qty >= product.stock : false;
+          const inCart = !!cartItem;
+          
+          return (
+            <div 
+              key={product.id}
+              className={`flex-1 bg-white p-2.5 rounded-xl shadow-sm border flex flex-col justify-between transition-all h-[74px] ${inCart ? 'border-blue-300 ring-1 ring-blue-100' : 'border-gray-100'} ${isAtMaxStock ? 'opacity-90' : ''}`}
+            >
+              <div 
+                className="min-w-0 cursor-pointer"
+                onClick={() => {
+                  if (isAtMaxStock) {
+                    showToast(`Umeshafikia kikomo cha stock kwa ${product.name}`, 'info');
+                    return;
+                  }
+                  addToCart(product);
+                }}
+              >
+                <h3 className="font-bold text-gray-900 text-[12px] leading-tight line-clamp-1 tracking-tight">{product.name}</h3>
+                <div className="text-[10px] font-bold text-blue-600 mt-0.5">
+                  {formatCurrency(product.sell_price, currency)}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center mt-1">
+                {inCart ? (
+                  <div className="flex items-center bg-blue-50 rounded-lg p-0.5 w-full justify-between">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (cartItem.qty > 1) {
+                          updateQty(product.id!, cartItem.qty - 1);
+                        } else {
+                          removeFromCart(product.id!);
+                        }
+                      }}
+                      className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-[11px] font-black text-blue-700 mx-1">{cartItem.qty}</span>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isAtMaxStock) return;
+                        updateQty(product.id!, cartItem.qty + 1);
+                      }}
+                      disabled={isAtMaxStock}
+                      className={`p-1 rounded ${isAtMaxStock ? 'text-gray-300' : 'text-blue-600 hover:bg-blue-100'}`}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-[9px] text-gray-400 font-medium">
+                    Stock: {product.stock}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {productsInRow.length === 1 && <div className="flex-1" />}
+      </div>
+    );
+  };
+
+  const CartItemRow = ({ index, style }: RowComponentProps) => {
+    const item = cart[index];
+    if (!item) return null;
     
     return (
-      <div style={style} className="px-1">
-        <div 
-          onClick={() => {
-            if (isAtMaxStock) {
-              showAlert('Kikomo cha Stock', `Umeshafikia kikomo cha stock kwa ${product.name}`);
-              return;
-            }
-            addToCart(product);
-          }}
-          className={`bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer active:bg-blue-50 transition-colors h-[70px] ${isAtMaxStock ? 'opacity-60' : ''}`}
-        >
-          <div className="flex-1 min-w-0 mr-2">
-            <h3 className="font-bold text-gray-800 text-sm truncate">{product.name}</h3>
-            <div className="text-xs text-gray-500 mt-0.5">
-              {formatCurrency(product.sell_price, currency)} • Zilizopo: {product.stock}
-              {isAtMaxStock && <span className="ml-2 text-red-500 font-bold">(Imejaa)</span>}
+      <div style={style} className="px-2">
+        <div className="bg-white border border-gray-100 rounded-2xl p-3 flex items-center justify-between shadow-sm mb-2">
+          <div className="flex-1 min-w-0">
+            <h4 className="font-bold text-gray-800 text-sm truncate">{item.name}</h4>
+            <div className="text-[10px] text-gray-500 font-medium">
+              Qty: {item.qty} • Bei ya awali: {formatCurrency(item.sell_price, currency)}
             </div>
           </div>
-          <div className={`${isAtMaxStock ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-600'} p-2 rounded-lg shrink-0`}>
-            <Plus className="w-5 h-5" />
+          
+          <div className="flex items-center space-x-3 ml-2">
+            {editingPriceItemId === item.id ? (
+              <input
+                type="number"
+                className="w-24 text-right p-2 border-2 border-blue-500 rounded-xl text-sm font-black outline-none shadow-lg"
+                value={editingPriceValue}
+                onChange={(e) => setEditingPriceValue(e.target.value)}
+                onBlur={() => {
+                  const newPrice = parseFloat(editingPriceValue);
+                  if (!isNaN(newPrice) && newPrice >= 0) {
+                    updateCartItemPrice(item.id!, newPrice);
+                  }
+                  setEditingPriceItemId(null);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                onFocus={(e) => e.currentTarget.select()}
+                autoFocus
+              />
+            ) : (
+              <div 
+                onClick={() => {
+                  setEditingPriceItemId(item.id!);
+                  setEditingPriceValue(item.sell_price.toString());
+                }}
+                className="flex items-center bg-blue-50 text-blue-700 px-3 py-2 rounded-xl cursor-pointer active:scale-95 transition-all border border-blue-100"
+              >
+                <span className="font-black text-xs mr-2">{formatCurrency(item.sell_price, currency)}</span>
+                <Edit2 className="w-3.5 h-3.5 opacity-50" />
+              </div>
+            )}
+            
+            <button 
+              onClick={() => removeFromCart(item.id!)} 
+              className="text-red-400 p-2 rounded-xl hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -157,7 +274,7 @@ export default function Kikapu() {
     if (cart.length === 0 || !user) return;
     
     if (paymentMethod === 'credit' && !customerName) {
-      showAlert('Kosa', 'Tafadhali weka jina la mteja kwa mauzo ya mkopo.');
+      showToast('Tafadhali weka jina la mteja kwa mauzo ya mkopo.', 'error');
       return;
     }
 
@@ -271,6 +388,7 @@ export default function Kikapu() {
       });
 
       clearCart();
+      setIsDiscountMode(false);
       setIsCheckout(false);
       setIsCredit(false);
       setCustomerName('');
@@ -278,6 +396,7 @@ export default function Kikapu() {
       setDueDate('');
       
       SyncService.sync();
+      showToast('Sale yamefanikiwa!', 'success');
     } catch (error: any) {
       showAlert('Kosa', 'Kuna tatizo: ' + error.message);
     }
@@ -360,138 +479,152 @@ export default function Kikapu() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Top Half: Product Selection */}
-      <div className="h-1/2 p-4 flex flex-col bg-gray-50 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-gray-800 mb-3">Ongeza Kwenye Kikapu</h1>
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input 
-            type="text" 
-            placeholder="Tafuta bidhaa..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-          />
+    <div className="flex flex-col h-full bg-gray-50 relative">
+      {/* Product Discovery Mode */}
+      <div className="flex-1 p-4 flex flex-col min-h-0">
+        <div className="flex items-center justify-between mb-2">
+          {isDiscountMode ? (
+            <button 
+              onClick={() => setIsDiscountMode(false)}
+              className="text-blue-600 font-bold text-sm flex items-center bg-blue-50 px-3 py-1.5 rounded-xl"
+            >
+               Nyuma kwenye Bidhaa
+            </button>
+          ) : (
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input 
+                type="text" 
+                placeholder="Tafuta bidhaa..." 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+              />
+            </div>
+          )}
+          
+          {isDiscountMode && (
+            <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest ml-4">Hali ya Punguzo</h2>
+          )}
         </div>
-        <div className="flex-1 min-h-0" ref={containerRef}>
-          {filteredProducts.length > 0 ? (
+
+        {!isDiscountMode && (
+          <div className="flex overflow-x-auto pb-2 scrollbar-hide space-x-2 mb-2">
+            <button
+              onClick={() => setSelectedLetter(null)}
+              className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${!selectedLetter ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 border border-gray-200'}`}
+            >
+              All
+            </button>
+            {alphabet.map(letter => (
+              <button
+                key={letter}
+                onClick={() => setSelectedLetter(selectedLetter === letter ? null : letter)}
+                className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${selectedLetter === letter ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 border border-gray-200'}`}
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex-1 min-h-0 bg-white rounded-3xl border border-gray-100 shadow-inner p-2" ref={containerRef}>
+          {isDiscountMode ? (
+            cart.length > 0 ? (
+              <List
+                rowCount={cart.length}
+                rowHeight={70}
+                rowComponent={CartItemRow}
+                rowProps={{}}
+                style={{ width: '100%', height: listHeight || 500 }}
+              />
+            ) : (
+              <div className="text-center text-gray-500 py-12">
+                <ShoppingBag className="w-12 h-12 text-gray-100 mx-auto mb-4" />
+                <p className="font-bold">Kikapu kiko tupu</p>
+                <button 
+                  onClick={() => setIsDiscountMode(false)}
+                  className="text-blue-600 text-xs mt-2 underline"
+                >
+                  Rudi kuongeza bidhaa
+                </button>
+              </div>
+            )
+          ) : filteredProducts.length > 0 ? (
             <List
-              rowCount={filteredProducts.length}
-              rowHeight={78} // 70px height + 8px gap
+              rowCount={Math.ceil(filteredProducts.length / 2)}
+              rowHeight={82}
               rowComponent={ProductSelectionRow}
               rowProps={{}}
-              style={{ width: '100%', height: listHeight || 300 }}
+              style={{ width: '100%', height: listHeight || 500 }}
             />
           ) : (
-            <div className="text-center text-gray-500 py-4 text-sm">
-              Hakuna bidhaa zilizopatikana.
+            <div className="text-center text-gray-500 py-12 flex flex-col items-center">
+              <div className="bg-gray-100 p-4 rounded-full mb-3">
+                <Search className="w-8 h-8 text-gray-300" />
+              </div>
+              <p className="font-medium">Hakuna bidhaa iliyopatikana</p>
+              <p className="text-xs text-gray-400">Jaribu neno lingine ama ungeza bidhaa mpya</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Bottom Half: Cart */}
-      <div className="h-1/2 p-4 flex flex-col bg-white">
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-lg font-bold text-gray-800 flex items-center">
-            <ShoppingBag className="w-5 h-5 mr-2" /> Kikapu
-          </h2>
-          {cart.length > 0 && (
-            <button onClick={clearCart} className="text-red-500 text-sm font-medium">Safi</button>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-          {cart.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-              Kikapu ni tupu
-            </div>
-          ) : (
-            cart.map(item => (
-              <div key={item.id} className="flex justify-between items-center border-b border-gray-100 pb-2">
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-800 text-sm">{item.name}</h4>
-                  <div className="text-xs text-gray-500">{formatCurrency(item.sell_price, currency)}</div>
+      {/* Floating Cart Panel */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-20 left-3 right-3 animate-in slide-in-from-bottom duration-300 z-40">
+          <div className="bg-gray-900/95 backdrop-blur-lg text-white p-3 rounded-[2.5rem] shadow-2xl border border-white/10 flex flex-col space-y-3">
+            {/* Top: Summary */}
+            <div className="flex items-center justify-between px-4 py-1">
+              <div className="flex items-center">
+                <div className="bg-blue-600 p-2.5 rounded-2xl mr-3 relative shadow-lg shadow-blue-500/20">
+                  <ShoppingBag className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 bg-white text-blue-600 text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-gray-900">
+                    {cart.reduce((a, b) => a + b.qty, 0)}
+                  </span>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center bg-gray-100 rounded-lg">
-                    <button onClick={() => item.qty > 1 ? updateQty(item.id!, item.qty - 1) : removeFromCart(item.id!)} className="p-1.5 text-gray-600">
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    {editingQtyItemId === item.id ? (
-                      <input
-                        type="number"
-                        className="w-12 text-center text-sm font-medium bg-white border border-blue-500 rounded outline-none py-0.5"
-                        value={editingQtyValue}
-                        onChange={(e) => setEditingQtyValue(e.target.value)}
-                        onFocus={(e) => e.target.select()}
-                        onBlur={() => {
-                          const newQty = parseInt(editingQtyValue, 10);
-                          if (!isNaN(newQty) && newQty > 0) {
-                            updateQty(item.id!, Math.min(newQty, item.stock));
-                          }
-                          setEditingQtyItemId(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.currentTarget.blur();
-                          }
-                        }}
-                        autoFocus
-                      />
-                    ) : (
-                      <span 
-                        className="w-8 text-center text-sm font-medium cursor-pointer hover:bg-gray-200 rounded py-1"
-                        onClick={() => {
-                          setEditingQtyItemId(item.id!);
-                          setEditingQtyValue(item.qty.toString());
-                        }}
-                      >
-                        {item.qty}
-                      </span>
-                    )}
-                    <button 
-                      onClick={() => item.qty < item.stock && updateQty(item.id!, item.qty + 1)} 
-                      className={`p-1.5 ${item.qty >= item.stock ? 'text-gray-300' : 'text-gray-600'}`}
-                      disabled={item.qty >= item.stock}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <button onClick={() => removeFromCart(item.id!)} className="text-red-500 p-1">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div>
+                  <p className="text-xl font-black tracking-tight">{formatCurrency(cartTotal(), currency)}</p>
+                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Kikapu kimejaa</p>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+              <button 
+                onClick={() => {
+                  clearCart();
+                  setIsDiscountMode(false);
+                }}
+                className="text-gray-400 hover:text-white p-2 transition-colors"
+                title="Safi Kikapu"
+              >
+                <Plus className="w-6 h-6 rotate-45" />
+              </button>
+            </div>
 
-        <div className="pt-3 border-t border-gray-200">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-gray-600 font-medium">Jumla:</span>
-            <span className="text-xl font-bold text-gray-900">{formatCurrency(cartTotal(), currency)}</span>
-          </div>
-          
-          {cart.length > 0 && (
-            <div className="flex space-x-2">
+            {/* Bottom: Action Buttons */}
+            <div className="grid grid-cols-3 gap-2 px-1 pb-1">
+              <button 
+                onClick={() => setIsDiscountMode(!isDiscountMode)}
+                className={`${isDiscountMode ? 'bg-blue-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'} py-3.5 rounded-2xl font-bold text-xs transition-all active:scale-95`}
+              >
+                {isDiscountMode ? 'Bidhaa' : 'Punguzo'}
+              </button>
               <button 
                 onClick={() => setIsCheckout(true)}
-                className="flex-1 bg-orange-600 disabled:bg-gray-400 text-white font-bold py-3.5 rounded-xl shadow-md text-sm"
+                className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 py-3.5 rounded-2xl font-bold text-xs border border-orange-500/30 transition-all active:scale-95"
               >
-                Uza kwa Mkopo
+                Mkopo
               </button>
               <button 
                 onClick={() => handleCompleteSale('cash')}
-                className="flex-1 bg-green-600 disabled:bg-gray-400 text-white font-bold py-3.5 rounded-xl shadow-md text-sm flex items-center justify-center space-x-2"
+                className="bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-2xl font-black text-xs shadow-lg shadow-green-900/20 transition-all active:scale-95 flex items-center justify-center"
               >
-                <span>Kamilisha Mauzo</span>
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                Uza
               </button>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useStore } from '../store';
+import { formatCurrency } from '../utils/format';
 import { Database, LogOut, RefreshCw, BarChart3, ChevronRight, Phone, Wallet, User, ShieldCheck, Trash2, Clock, AlertTriangle, X, CheckCircle, MessageSquare, Zap, Bell, Users, Plus, Shield, Settings, Ban } from 'lucide-react';
 import { supabase } from '../supabase';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,6 +15,7 @@ export default function Zaidi() {
   const { user, logout, showAlert, showConfirm, isBoss, isFeatureEnabled } = useStore();
   const location = useLocation();
   const settings = useLiveQuery(() => db.settings.get(1));
+  const currency = settings?.currency || 'TZS';
   const shop = useLiveQuery(() => user?.shopId ? db.shops.get(user.shopId) : Promise.resolve(undefined), [user?.shopId]);
   const products = useLiveQuery(() => {
     if (!user?.shopId) return [];
@@ -34,12 +36,21 @@ export default function Zaidi() {
   const [isAddingStaff, setIsAddingStaff] = useState(false);
   const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showInventoryValue, setShowInventoryValue] = useState(false);
   const [newName, setNewName] = useState('');
 
   const staff = useLiveQuery(() => {
     if (!user?.shopId) return [];
     return db.users.filter(u => u.shop_id === user.shopId && u.id !== user.id).toArray();
   }, [user?.shopId, user?.id]) || [];
+
+  const inventoryMetrics = useMemo(() => {
+    return products.reduce((acc, p) => {
+      acc.totalBuyingValue += (p.buy_price * p.stock);
+      acc.totalSellingValue += (p.sell_price * p.stock);
+      return acc;
+    }, { totalBuyingValue: 0, totalSellingValue: 0 });
+  }, [products]);
 
   const handleUpdateStaff = async () => {
     if (!editingStaffId) return;
@@ -491,28 +502,50 @@ export default function Zaidi() {
           )}
         </section>
 
-        {/* Matumizi Section */}
-        {(isBoss() || isFeatureEnabled('staff_expense_management')) && (
-          <section className="space-y-3">
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-              <button 
-                onClick={() => navigate('/matumizi')}
-                className="w-full flex items-center justify-between"
-              >
-                <div className="flex items-center">
-                  <div className="bg-orange-100 p-2 rounded-xl mr-3">
-                    <Wallet className="w-6 h-6 text-orange-600" />
-                  </div>
-                  <div className="text-left">
-                    <h2 className="text-lg font-semibold text-gray-800">Matumizi</h2>
-                    <p className="text-xs text-gray-500">Rekodi na dhibiti matumizi ya biashara</p>
-                  </div>
+        {/* Inventory Value Section - Boss Only */}
+        {isBoss() && (
+          <section className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="bg-green-100 p-2 rounded-xl mr-3">
+                  <Database className="w-6 h-6 text-green-600" />
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800">Thamani ya Stock</h2>
+                  <p className="text-xs text-gray-500">Thamani ya bidhaa zote zilizopo</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowInventoryValue(!showInventoryValue)}
+                className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-colors ${showInventoryValue ? 'bg-gray-100 text-gray-600' : 'bg-green-600 text-white'}`}
+              >
+                {showInventoryValue ? 'Ficha' : 'Tazama'}
               </button>
             </div>
+            
+            {showInventoryValue && (
+              <div className="mt-4 pt-4 border-t border-gray-50 grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Jumla ya Manunuzi</p>
+                  <p className="text-lg font-black text-gray-900">{formatCurrency(inventoryMetrics.totalBuyingValue, currency)}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Jumla ya Mauzo</p>
+                  <p className="text-lg font-black text-blue-600">{formatCurrency(inventoryMetrics.totalSellingValue, currency)}</p>
+                </div>
+                <div className="col-span-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] text-blue-600 uppercase font-bold tracking-wider">Tarajio la Faida</p>
+                    <p className="text-xl font-black text-blue-700">
+                      {formatCurrency(inventoryMetrics.totalSellingValue - inventoryMetrics.totalBuyingValue, currency)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         )}
+
 
         {/* Staff Management Section */}
         {isBoss() && (
@@ -568,7 +601,7 @@ export default function Zaidi() {
               <p className="text-sm text-blue-800 font-medium mb-2">Jinsi ya kuongeza mfanyakazi:</p>
               <ol className="list-decimal list-inside text-xs text-blue-700 space-y-1">
                 <li>Bonyeza kitufe cha <b>(+ Ongeza)</b> hapo juu.</li>
-                <li>Ingiza <b>Email</b> ya mfanyakazi na uchague cheo chake.</li>
+                <li>Ingiza <b>Email</b> ya mfanyakazi.</li>
                 <li>Mwambie mfanyakazi ajisajili (Register) kwa kutumia email hiyo.</li>
                 <li>Atajiunga na duka lako moja kwa moja baada ya kujisajili.</li>
               </ol>
@@ -625,38 +658,6 @@ export default function Zaidi() {
           </section>
         )}
 
-        {/* Sync Section */}
-        <section className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <RefreshCw className={`w-5 h-5 mr-2 text-blue-500 ${isSyncing ? 'animate-spin' : ''}`} /> Usawazishaji (Sync)
-          </h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-xl border border-blue-100">
-              <div>
-                <p className="text-xs text-blue-600 font-medium uppercase tracking-wider">Mara ya mwisho kusawazisha</p>
-                <p className="text-sm font-bold text-blue-900">
-                  {settings?.lastSync ? new Intl.DateTimeFormat('sw-TZ', { 
-                    day: 'numeric', 
-                    month: 'short', 
-                    year: 'numeric', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  }).format(new Date(settings.lastSync)) : 'Bado haijasawazishwa'}
-                </p>
-              </div>
-              <button 
-                onClick={handleManualSync}
-                disabled={isSyncing}
-                className="bg-blue-600 text-white p-2 rounded-lg shadow-sm disabled:bg-gray-400"
-              >
-                <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-            <p className="text-xs text-gray-500">
-              Data zako zinasawazishwa kila baada ya dakika 5 ukiwa na mtandao. Unaweza pia kusawazisha sasa hivi kwa kubonyeza kitufe hapo juu.
-            </p>
-          </div>
-        </section>
 
         {/* Delete History Section */}
         {isBoss() && (
@@ -691,20 +692,6 @@ export default function Zaidi() {
           </a>
         </section>
 
-        {/* Backup Section */}
-        {isBoss() && (
-          <section className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <Database className="w-5 h-5 mr-2 text-gray-500" /> Hifadhi Nakala (Backup)
-            </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Hifadhi taarifa zako zote kwenye simu yako ili usipoteze data.
-            </p>
-            <button onClick={handleBackup} className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl">
-              Pakua Nakala (Backup)
-            </button>
-          </section>
-        )}
 
         <div className="text-center py-8">
           <p className="text-lg font-bold text-blue-600">Venics Sales</p>
@@ -938,19 +925,6 @@ export default function Zaidi() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Cheo (Role)</label>
-                <select 
-                  value={staffRole}
-                  onChange={e => setStaffRole(e.target.value as any)}
-                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-gray-700"
-                >
-                  <option value="employee">Mfanyakazi (Kawaida)</option>
-                  <option value="cashier">Cashier (Muuzaji)</option>
-                  <option value="manager">Meneja (Manager)</option>
-                </select>
-              </div>
-
               <div className="flex space-x-3 pt-4">
                 <button 
                   onClick={() => { setShowStaffModal(false); setEditingStaffId(null); }}
@@ -996,19 +970,6 @@ export default function Zaidi() {
                   className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none font-bold text-gray-700"
                   autoFocus
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Cheo (Role)</label>
-                <select 
-                  value={staffRole}
-                  onChange={e => setStaffRole(e.target.value as any)}
-                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none font-bold text-gray-700"
-                >
-                  <option value="employee">Mfanyakazi (Kawaida)</option>
-                  <option value="cashier">Cashier (Muuzaji)</option>
-                  <option value="manager">Meneja (Manager)</option>
-                </select>
               </div>
 
               <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl text-orange-700 text-[10px] leading-relaxed">

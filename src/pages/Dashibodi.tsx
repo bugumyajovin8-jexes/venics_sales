@@ -11,7 +11,7 @@ import { SyncService } from '../services/sync';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Dashibodi() {
-  const { user, showAlert, isBoss, isFeatureEnabled } = useStore();
+  const { user, showAlert, showToast, isBoss, isFeatureEnabled } = useStore();
   const navigate = useNavigate();
   const boss = isBoss();
 
@@ -186,10 +186,11 @@ export default function Dashibodi() {
       setStockToAdd('');
       setExpiryDate('');
       setSelectedProductForStock(null);
+      showToast('Stock imeongezwa!', 'success');
       SyncService.sync();
     } catch (error: any) {
       console.error('Error adding stock:', error);
-      showAlert('Kosa', error.message || 'Kuna tatizo wakati wa kuongeza stock');
+      showToast(error.message || 'Kuna tatizo wakati wa kuongeza stock', 'error');
     }
   };
 
@@ -276,6 +277,24 @@ export default function Dashibodi() {
           <span className="text-sm font-medium">Madeni</span>
         </div>
         <div className="text-xl font-bold">{formatCurrency(totalDebt, currency)}</div>
+      </div>
+
+      {/* Quick Access Buttons */}
+      <div className="grid grid-cols-2 gap-4">
+        <button 
+          onClick={() => navigate('/matumizi')}
+          className="flex items-center justify-center py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-gray-700 active:scale-95 transition-all"
+        >
+          <DollarSign className="w-3.5 h-3.5 mr-1.5 text-red-500" />
+          Matumizi
+        </button>
+        <button 
+          onClick={() => navigate('/historia')}
+          className="flex items-center justify-center py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-gray-700 active:scale-95 transition-all"
+        >
+          <Clock className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
+          Historia
+        </button>
       </div>
 
       {/* Monthly Stats */}
