@@ -20,7 +20,7 @@ const CATEGORIES = [
 ];
 
 export default function Matumizi() {
-  const { user, showConfirm, showAlert } = useStore();
+  const { user, showConfirm, showAlert, isBoss, isFeatureEnabled } = useStore();
   const settings = useLiveQuery(() => db.settings.get(1));
   const currency = settings?.currency || 'TZS';
   const expenses = useLiveQuery(() => {
@@ -32,6 +32,18 @@ export default function Matumizi() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formAmount, setFormAmount] = useState('');
+
+  if (!isBoss() && !isFeatureEnabled('staff_expense_management')) {
+    return (
+      <div className="p-8 text-center flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
+          <Wallet className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Hauna Ruhusa</h2>
+        <p className="text-gray-500">Meneja wako hajakupa ruhusa ya kuona au kuongeza matumizi.</p>
+      </div>
+    );
+  }
 
   const formatInputNumber = (val: string) => {
     const num = val.replace(/[^0-9]/g, '');
