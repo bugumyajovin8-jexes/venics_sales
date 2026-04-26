@@ -119,9 +119,6 @@ export class SyncService {
       const dataToSync = this.mapToRemote(tableName, localData);
       
       const upsertOptions: any = { onConflict: 'id' };
-      if (tableName === 'features') {
-        upsertOptions.onConflict = 'shop_id, feature_key';
-      }
       
       // Use insert for audit_logs since they are immutable and to avoid UPDATE policy checks
       const request = tableName === 'audit_logs' 
