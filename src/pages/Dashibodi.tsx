@@ -282,11 +282,21 @@ export default function Dashibodi() {
       {/* Quick Access Buttons */}
       <div className="grid grid-cols-2 gap-4">
         <button 
-          onClick={() => navigate('/matumizi')}
-          className="flex items-center justify-center py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-gray-700 active:scale-95 transition-all"
+          onClick={() => {
+            if (!boss && !isFeatureEnabled('staff_expense_management')) {
+              showToast('Hauna ruhusa ya kuona/kuongeza matumizi.', 'error');
+            } else {
+              navigate('/matumizi');
+            }
+          }}
+          className={`flex items-center justify-center py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold transition-all ${
+            !boss && !isFeatureEnabled('staff_expense_management') 
+              ? 'opacity-50 text-gray-400 cursor-not-allowed' 
+              : 'text-gray-700 active:scale-95'
+          }`}
         >
-          <DollarSign className="w-3.5 h-3.5 mr-1.5 text-red-500" />
-          Matumizi
+          <DollarSign className={`w-3.5 h-3.5 mr-1.5 ${!boss && !isFeatureEnabled('staff_expense_management') ? 'text-gray-400' : 'text-red-500'}`} />
+          {!boss && !isFeatureEnabled('staff_expense_management') ? 'Matumizi (Zuiwa)' : 'Matumizi'}
         </button>
         <button 
           onClick={() => navigate('/historia')}
