@@ -106,7 +106,7 @@ export async function auditProductsFromImage(base64Image: string, mimeType: stri
 
 export async function extractProductsFromImage(base64Image: string, mimeType: string): Promise<ExtractedProduct[]> {
   try {
-    if (!process.env.GEMINI_API_KEY) {
+    if (!apiKey) {
       throw new Error("Gemini API Key haijapatikana. Tafadhali wasiliana na bosi wako au angalia Settings.");
     }
 

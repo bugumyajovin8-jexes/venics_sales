@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { format } from 'date-fns';
-import { Trash2, Clock, User, Package, Edit, Plus, AlertCircle, ArrowLeft, RotateCcw, Wallet } from 'lucide-react';
+import { Trash2, Clock, User, Package, Edit, Plus, AlertCircle, ArrowLeft, RotateCcw, Wallet, Tag } from 'lucide-react';
 import { useStore } from '../store';
 import { SyncService } from '../services/sync';
 import { formatCurrency } from '../utils/format';
@@ -48,6 +48,7 @@ export default function AuditLogs() {
       case 'import_products': return <Package className="w-4 h-4 text-orange-500" />;
       case 'refund_sale': return <RotateCcw className="w-4 h-4 text-red-600" />;
       case 'add_expense': return <Wallet className="w-4 h-4 text-orange-600" />;
+      case 'discounted_sale': return <Tag className="w-4 h-4 text-purple-500" />;
       default: return <AlertCircle className="w-4 h-4 text-gray-500" />;
     }
   };
@@ -61,6 +62,7 @@ export default function AuditLogs() {
       case 'import_products': return 'Aliingiza Bidhaa (Excel)';
       case 'refund_sale': return 'Alirudisha Mauzo (Refund)';
       case 'add_expense': return 'Aliongeza Matumizi';
+      case 'discounted_sale': return 'Alitoa Punguzo la Bei';
       default: return action;
     }
   };
@@ -154,6 +156,33 @@ export default function AuditLogs() {
                   <div className="col-span-2 text-xs mt-1">
                     <span className="text-gray-400 uppercase font-bold text-[10px] block mb-0.5">Maelezo</span>
                     <span className="font-medium text-gray-600">{log.details?.description}</span>
+                  </div>
+                </div>
+              )}
+
+              {log.action === 'discounted_sale' && (
+                <div className="mt-3 pt-3 border-t border-gray-50 flex flex-col gap-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-xs">
+                      <span className="text-gray-400 uppercase font-bold text-[10px] block mb-0.5">Bei ya Asili</span>
+                      <span className="font-bold text-gray-400 line-through">{formatCurrency(log.details?.original_price, currency)}</span>
+                    </div>
+                    <div className="text-xs">
+                      <span className="text-gray-400 uppercase font-bold text-[10px] block mb-0.5">Bei Mpya</span>
+                      <span className="font-bold text-green-600">{formatCurrency(log.details?.price_on_discount, currency)}</span>
+                    </div>
+                    <div className="text-xs">
+                      <span className="text-gray-400 uppercase font-bold text-[10px] block mb-0.5">Idadi</span>
+                      <span className="font-bold text-gray-700">{log.details?.number_of_items_sold}</span>
+                    </div>
+                  </div>
+                  <div className="text-xs mt-1">
+                    <span className="text-gray-400 uppercase font-bold text-[10px] block mb-0.5">Bidhaa</span>
+                    <span className="font-medium text-gray-600">{log.details?.name_of_product}</span>
+                  </div>
+                  <div className="text-xs mt-1">
+                    <span className="text-gray-400 uppercase font-bold text-[10px] block mb-0.5">Muzaji</span>
+                    <span className="font-medium text-gray-600">{log.details?.name_of_person_who_sold}</span>
                   </div>
                 </div>
               )}

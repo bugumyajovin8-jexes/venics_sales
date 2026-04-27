@@ -10,6 +10,50 @@ import { addDays } from 'date-fns';
 import { SyncService } from '../services/sync';
 import { List, RowComponentProps } from 'react-window';
 
+const PriceInput = ({ item, currency }: { item: any, currency: string }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [value, setValue] = useState(item.sell_price.toString());
+  const updateCartItemPrice = useStore(state => state.updateCartItemPrice);
+
+  if (isEditing) {
+    return (
+      <input
+        type="number"
+        className="w-24 text-right p-2 border-2 border-blue-500 rounded-xl text-sm font-black outline-none shadow-lg"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => {
+          const newPrice = parseFloat(value);
+          if (!isNaN(newPrice) && newPrice >= 0) {
+            updateCartItemPrice(item.id!, newPrice);
+          }
+          setIsEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.currentTarget.blur();
+          }
+        }}
+        onFocus={(e) => e.currentTarget.select()}
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <div 
+      onClick={() => {
+        setIsEditing(true);
+        setValue(item.sell_price.toString());
+      }}
+      className="flex items-center bg-blue-50 text-blue-700 px-3 py-2 rounded-xl cursor-pointer active:scale-95 transition-all border border-blue-100"
+    >
+      <span className="font-black text-xs mr-2">{formatCurrency(item.sell_price, currency)}</span>
+      <Edit2 className="w-3.5 h-3.5 opacity-50" />
+    </div>
+  );
+};
+
 export default function Kikapu() {
   const user = useStore(state => state.user);
   const settings = useLiveQuery(() => db.settings.get(1));
@@ -40,14 +84,10 @@ export default function Kikapu() {
   const [isCheckout, setIsCheckout] = useState(false);
   const [isCredit, setIsCredit] = useState(false);
   const [isDiscountMode, setIsDiscountMode] = useState(false);
-  const [editingPriceItemId, setEditingPriceItemId] = useState<string | null>(null);
-  const [editingPriceValue, setEditingPriceValue] = useState<string>('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [editingQtyItemId, setEditingQtyItemId] = useState<string | null>(null);
-  const [editingQtyValue, setEditingQtyValue] = useState<string>('');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [listHeight, setListHeight] = useState(300);
@@ -218,35 +258,7 @@ export default function Kikapu() {
           </div>
           
           <div className="flex items-center space-x-3 ml-2">
-            {editingPriceItemId === item.id ? (
-              <input
-                type="number"
-                className="w-24 text-right p-2 border-2 border-blue-500 rounded-xl text-sm font-black outline-none shadow-lg"
-                value={editingPriceValue}
-                onChange={(e) => setEditingPriceValue(e.target.value)}
-                onBlur={() => {
-                  const newPrice = parseFloat(editingPriceValue);
-                  if (!isNaN(newPrice) && newPrice >= 0) {
-                    updateCartItemPrice(item.id!, newPrice);
-                  }
-                  setEditingPriceItemId(null);
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                onFocus={(e) => e.currentTarget.select()}
-                autoFocus
-              />
-            ) : (
-              <div 
-                onClick={() => {
-                  setEditingPriceItemId(item.id!);
-                  setEditingPriceValue(item.sell_price.toString());
-                }}
-                className="flex items-center bg-blue-50 text-blue-700 px-3 py-2 rounded-xl cursor-pointer active:scale-95 transition-all border border-blue-100"
-              >
-                <span className="font-black text-xs mr-2">{formatCurrency(item.sell_price, currency)}</span>
-                <Edit2 className="w-3.5 h-3.5 opacity-50" />
-              </div>
-            )}
+            <PriceInput item={item} currency={currency} />
             
             <button 
               onClick={() => removeFromCart(item.id!)} 
@@ -315,6 +327,8 @@ export default function Kikapu() {
       synced: 0
     }));
 
+    const discountsToLog: any[] = [];
+
     try {
       // Update stock and save sale atomically
       await db.transaction('rw', db.products, db.sales, db.saleItems, async () => {
@@ -324,6 +338,16 @@ export default function Kikapu() {
           const validStock = dbProduct ? dbProduct.stock : 0;
           if (!dbProduct || validStock < item.qty) {
             throw new Error(`Bidhaa "${item.name}" haina stock ya kutosha. Stock iliyopo: ${validStock}`);
+          }
+          
+          if (dbProduct && Number(item.sell_price) < Number(dbProduct.sell_price)) {
+            discountsToLog.push({
+              product_id: item.id,
+              name: item.name,
+              original_price: Number(dbProduct.sell_price) * item.qty,
+              discounted_price: Number(item.sell_price) * item.qty,
+              qty: item.qty
+            });
           }
         }
 
@@ -386,6 +410,23 @@ export default function Kikapu() {
           }
         }
       });
+
+      if (discountsToLog.length > 0) {
+        const totalOriginalPrice = discountsToLog.reduce((sum, d) => sum + d.original_price, 0);
+        const totalDiscountedPrice = discountsToLog.reduce((sum, d) => sum + d.discounted_price, 0);
+        const totalQty = discountsToLog.reduce((sum, d) => sum + d.qty, 0);
+        const productNames = discountsToLog.map(d => d.name).join(', ');
+
+        await SyncService.logAction('discounted_sale', {
+          sale_id: saleId,
+          number_of_items_sold: totalQty,
+          original_price: totalOriginalPrice,
+          price_on_discount: totalDiscountedPrice,
+          name_of_person_who_sold: user.name || 'Unknown',
+          name_of_product: productNames,
+          time: sale.created_at
+        });
+      }
 
       clearCart();
       setIsDiscountMode(false);

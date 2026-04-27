@@ -131,7 +131,7 @@ export interface AuditLog {
   shop_id: string;
   user_id: string;
   user_name?: string;
-  action: 'add_product' | 'edit_product' | 'import_products' | 'delete_product' | 'delete_all_products' | 'refund_sale' | 'add_expense';
+  action: 'add_product' | 'edit_product' | 'import_products' | 'delete_product' | 'delete_all_products' | 'refund_sale' | 'add_expense' | 'discounted_sale';
   details: any;
   isDeleted: number; // 0 for false, 1 for true
   created_at: string;
