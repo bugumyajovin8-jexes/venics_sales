@@ -603,14 +603,7 @@ export default function MshauriChat() {
   }, [isOpen]);
 
   const [isTyping, setIsTyping] = useState(false);
-  const [isAiEnabled, setIsAiEnabled] = useState(() => {
-    try {
-      const saved = localStorage.getItem('mshauri_ai_enabled');
-      return saved === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [isAiEnabled, setIsAiEnabled] = useState(false);
 
   const getGeminiClient = () => {
     const key = import.meta.env.VITE_MY_GEMINI_KEY;
@@ -2226,32 +2219,6 @@ Maelekezo:
             </div>
             
             <div className="flex items-center space-x-2.5">
-              {/* V Smart Sliding Toggle */}
-              <div className="flex items-center space-x-1.5 bg-white/10 px-2 py-1.5 rounded-full border border-white/10">
-                <span className="text-white text-[10px] font-extrabold tracking-wider">V Smart</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newVal = !isAiEnabled;
-                    setIsAiEnabled(newVal);
-                    try {
-                      localStorage.setItem('mshauri_ai_enabled', String(newVal));
-                    } catch (e) {
-                      console.error('Failed to set localStorage', e);
-                    }
-                  }}
-                  className={`relative inline-flex h-4.5 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    isAiEnabled ? 'bg-emerald-500' : 'bg-slate-900/40'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      isAiEnabled ? 'translate-x-3.5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
               <button onClick={() => setIsOpen(false)} className="text-indigo-200 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
