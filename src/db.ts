@@ -207,7 +207,7 @@ export class PosDatabase extends Dexie {
 
   constructor() {
     super('PosDatabaseV10'); // Bumped version for encryption
-    this.version(18).stores({
+    this.version(19).stores({
       shops: 'id, name, created_by, synced',
       users: 'id, shop_id, email, role, synced',
       products: 'id, shop_id, name, synced, isDeleted, [shop_id+isDeleted]',

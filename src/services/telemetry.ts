@@ -41,7 +41,11 @@ export class TelemetryService {
       
       // Automatically request background syncing
       SyncService.scheduleBackgroundSync();
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'NotFoundError') {
+        // Ignore schema upgrade intermediate state errors quietly
+        return;
+      }
       console.error('[Telemetry] Failed to record feature usage:', error);
     }
   }

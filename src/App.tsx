@@ -220,9 +220,9 @@ export default function App() {
         } else {
           console.warn('Ignore background Supabase SIGNED_OUT event because local session token is still valid.');
         }
-      } else if (session && event === 'SIGNED_IN') {
+      } else if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         const currentUser = useStore.getState().user;
-        if (!currentUser) {
+        if (!currentUser && event === 'SIGNED_IN') {
           try {
             const { data: userData } = await supabase
               .from('users')
@@ -245,11 +245,14 @@ export default function App() {
                 isDeleted: 0,
                 synced: 1,
               };
-              setAuth(session.access_token, localUser);
+              setAuth(session.access_token, localUser, session.refresh_token);
             }
           } catch (e) {
             console.error('Failed to fetch user profile on auth state change', e);
           }
+        } else if (currentUser && event === 'TOKEN_REFRESHED') {
+           // Provide the refreshed token to our store so API calls have the latest version.
+           setAuth(session.access_token, currentUser, session.refresh_token);
         }
       }
     });
@@ -458,12 +461,21 @@ export default function App() {
     scheduleNextCritical();
     scheduleNextFull();
 
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         if (navigator.onLine) {
           lastActiveTime = Date.now();
           isAppInactive = false;
           useStore.getState().setSyncStatus('active');
+          
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+              await supabase.auth.refreshSession();
+            }
+          } catch (e) {
+            console.warn('Proactive session refresh failed:', e);
+          }
           
           // Force critical sync first to get transactions, then full sync on iOS wake
           void SyncService.sync(false, 'critical').then(() => {

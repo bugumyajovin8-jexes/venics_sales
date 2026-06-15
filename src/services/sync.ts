@@ -82,6 +82,8 @@ export class SyncService {
     }
   }
 
+  private static lastAuthWarnTime = 0;
+
   static async sync(force = false, scope: SyncScope = 'full'): Promise<void> {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
@@ -173,6 +175,42 @@ export class SyncService {
     const state = useStore.getState();
     const user = state.user;
     if (!user?.shopId) return;
+
+    // Ensure session is active before syncing, especially crucial for PWAs from background
+    try {
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const canLog = Date.now() - this.lastAuthWarnTime > 60000;
+        if (canLog) {
+          console.warn('[SyncService] No active session before sync. Attempting local restore...');
+          this.lastAuthWarnTime = Date.now();
+        }
+        
+        const storedAccess = localStorage.getItem('pos_token');
+        const storedRefresh = localStorage.getItem('pos_refresh_token');
+        
+        if (storedAccess && storedRefresh) {
+           const { data } = await supabase.auth.setSession({ access_token: storedAccess, refresh_token: storedRefresh });
+           session = data.session;
+        }
+
+        if (!session) {
+           if (canLog) console.warn('[SyncService] Attempting manual refreshSession...');
+           const { data: refreshData } = await supabase.auth.refreshSession();
+           session = refreshData.session;
+        }
+
+        if (!session) {
+           if (canLog) console.error('[SyncService] Could not restore session. Sync deferred until valid session is established.');
+           return;
+        }
+      } else if (session.expires_at && (session.expires_at * 1000) - Date.now() < 300000) {
+        // Refresh proactively if expiring within 5 minutes
+        await supabase.auth.refreshSession();
+      }
+    } catch (e) {
+      console.warn('[SyncService] Session check skipped due to error:', e);
+    }
 
     const shopId = user.shopId;
     const settings = await db.settings.get(1);
@@ -278,20 +316,56 @@ export class SyncService {
   }
 
   private static async runWithRetry<T>(fn: () => any, label: string): Promise<T> {
-    let lastError: unknown;
+    let lastError: any;
 
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    // Expand max retries slightly to allow for explicit auth re-challenges to succeed
+    const maxAttempts = MAX_RETRIES + 1;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const result = await fn();
         if (result && typeof result === 'object' && 'error' in result && result.error) {
           throw result.error;
         }
         return (result && typeof result === 'object' && 'data' in result ? result.data : result) as T;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
+
+        // PWA specific handling: Check if it's an Auth / JWT error
+        const isAuthError = 
+          error?.status === 401 || 
+          error?.status === 403 || 
+          error?.code === 'PGRST301' || 
+          (error?.message || '').toLowerCase().includes('jwt') ||
+          (error?.message || '').includes('User not associated with any shop') ||
+          error?.code === '401' ||
+          error?.code === '403';
+
+        if (isAuthError) {
+          console.warn(`[SyncService] ${label} encountered Auth error on attempt ${attempt}. Forcing token refresh...`);
+          try {
+            let { data } = await supabase.auth.refreshSession();
+            if (!data.session) {
+              const storedAccess = localStorage.getItem('pos_token');
+              const storedRefresh = localStorage.getItem('pos_refresh_token');
+              if (storedAccess && storedRefresh) {
+                 const restore = await supabase.auth.setSession({ access_token: storedAccess, refresh_token: storedRefresh });
+                 if (restore.data.session) {
+                    console.log('[SyncService] Restored auth session during retry block.');
+                 }
+              }
+            }
+            // Optional delay after refresh to let token propagate
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (refreshErr) {
+            console.warn('[SyncService] Token refresh failed during sync retry:', refreshErr);
+          }
+        }
+
         const waitMs = 300 * attempt * attempt;
-        console.warn(`${label} failed on attempt ${attempt}/${MAX_RETRIES}. Retrying in ${waitMs}ms.`, error);
-        if (attempt < MAX_RETRIES) {
+        console.warn(`${label} failed on attempt ${attempt}/${maxAttempts}. Retrying in ${waitMs}ms.`, error);
+        
+        if (attempt < maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, waitMs));
         }
       }

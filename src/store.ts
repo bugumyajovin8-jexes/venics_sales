@@ -32,7 +32,7 @@ interface PosState {
   user: User | null;
   authError: string | null;
   features: Record<string, boolean>;
-  setAuth: (token: string | null, user: User | null) => void;
+  setAuth: (token: string | null, user: User | null, refreshToken?: string | null) => void;
   updateUser: (userUpdates: Partial<User>) => void;
   logout: (error?: string) => void;
   setAuthError: (error: string | null) => void;
@@ -137,13 +137,15 @@ export const useStore = create<PosState>((set, get) => ({
   user: JSON.parse(localStorage.getItem('pos_user') || 'null'),
   authError: null,
   features: {},
-  setAuth: (token, user) => {
+  setAuth: (token, user, refreshToken) => {
     if (token && user) {
       localStorage.setItem('pos_token', token);
+      if (refreshToken) localStorage.setItem('pos_refresh_token', refreshToken);
       localStorage.setItem('pos_user', JSON.stringify(user));
       set({ isAuthenticated: true, token, user, authError: null });
     } else {
       localStorage.removeItem('pos_token');
+      localStorage.removeItem('pos_refresh_token');
       localStorage.removeItem('pos_user');
       set({ isAuthenticated: false, token: null, user: null });
     }
@@ -156,6 +158,7 @@ export const useStore = create<PosState>((set, get) => ({
   }),
   logout: (error) => {
     localStorage.removeItem('pos_token');
+    localStorage.removeItem('pos_refresh_token');
     localStorage.removeItem('pos_user');
     sessionStorage.removeItem('app_opened_logged');
     set({ isAuthenticated: false, token: null, user: null, cart: [], authError: error || null });
