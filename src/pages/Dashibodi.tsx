@@ -168,10 +168,10 @@ export default function Dashibodi() {
       LicenseService.clearStatusCache();
       await LicenseService.syncLicense(true);
       LicenseService.clearStatusCache();
-      showToast('Leseni imesawazishwa kikamilifu', 'success');
+      showToast('Njia ya Mfumo imesawazishwa kikamilifu', 'success');
       await SyncService.sync(true, 'critical');
     } catch (err: any) {
-      showToast('Imeshindwa kusawazisha leseni', 'error');
+      showToast('Imeshindwa kusawazisha taarifa za Mfumo', 'error');
     } finally {
       setIsSyncingLicense(false);
     }
@@ -253,7 +253,7 @@ export default function Dashibodi() {
                   ) : (
                     <AlertTriangle className="w-3 h-3 mr-1" />
                   )}
-                  Siku {daysRemaining} zimebaki (Leseni)
+                  Siku {daysRemaining} zimebaki (Matumizi)
                 </div>
                 {daysRemaining <= 5 && (
                   <a href="tel:0787979273" className="inline-flex mt-1 items-center px-3 py-1.5 rounded-full text-xs font-bold bg-green-500 text-white w-fit shadow-sm hover:bg-green-600 active:scale-95 transition-all">
@@ -511,7 +511,7 @@ export default function Dashibodi() {
                       <div>
                         <p className="font-bold text-gray-800 text-lg">{product.name}</p>
                         <p className="text-sm text-red-600 font-medium">
-                          Stoki: {getValidStock(product, isExpiryEnabled)} / 📊 Kikomo cha Mauzo (Siku 7): {getDynamicThreshold(product.id, product.min_stock, velocityMap)} pcs
+                          Stoki: {getValidStock(product, isExpiryEnabled)}
                         </p>
                       </div>
                       {canManageStock && (

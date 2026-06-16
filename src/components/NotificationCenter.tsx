@@ -12,7 +12,7 @@ export default function NotificationCenter() {
 
   const { 
     notificationsList, 
-    markNotificationRead, 
+    dismissNotification, 
     clearNotificationList,
     setMshauriOpen
   } = useStore();
@@ -40,7 +40,7 @@ export default function NotificationCenter() {
   const activeNotification = unreadNotifications[0];
 
   const handleSeeMore = (page: string, id: string) => {
-    markNotificationRead(id);
+    dismissNotification(id);
     setIsOpen(false);
     
     switch (page) {
@@ -65,7 +65,7 @@ export default function NotificationCenter() {
   };
 
   const handleReply = (chatPrompt: string, id: string) => {
-    markNotificationRead(id);
+    dismissNotification(id);
     setIsOpen(false);
     setMshauriOpen(true, chatPrompt);
   };
@@ -104,8 +104,8 @@ export default function NotificationCenter() {
                     )}
                   </div>
                   <span className="text-xs font-black tracking-wider uppercase font-sans">
-                    {activeNotification.type === 'critical' ? '🚨 TANBIHI KUU' :
-                     activeNotification.type === 'warning' ? '⚠️ ADHARI/SHAKA' : '📢 ARIFA YA DUKA'}
+                    {activeNotification.type === 'critical' ? '🚨 TATIZO KUU' :
+                     activeNotification.type === 'warning' ? '⚠️ SHAKA' : '📢 ALERT YA DUKA'}
                   </span>
                 </div>
 
@@ -114,7 +114,7 @@ export default function NotificationCenter() {
                     {new Date(activeNotification.timestamp).toLocaleTimeString('sw-TZ', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   <button
-                    onClick={() => markNotificationRead(activeNotification.id)}
+                    onClick={() => dismissNotification(activeNotification.id)}
                     className="p-1 hover:bg-black/5 rounded-full text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                     title="Ondoa"
                   >
@@ -134,10 +134,10 @@ export default function NotificationCenter() {
               {/* Action Buttons Footer */}
               <div className="px-4 pb-4 pt-1 flex items-center justify-end gap-2 bg-slate-50 border-t border-slate-100">
                 <button
-                  onClick={() => markNotificationRead(activeNotification.id)}
+                  onClick={() => dismissNotification(activeNotification.id)}
                   className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
                 >
-                  Soma
+                  Ondoa
                 </button>
                 <button
                   onClick={() => handleSeeMore(activeNotification.page, activeNotification.id)}
@@ -151,7 +151,7 @@ export default function NotificationCenter() {
                   className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-1.5 rounded-xl transition-all flex items-center space-x-1 cursor-pointer shadow-md active:scale-95"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Shauri / Jibu</span>
+                  <span>Chat</span>
                 </button>
               </div>
             </motion.div>
@@ -195,7 +195,7 @@ export default function NotificationCenter() {
               <div className="bg-gradient-to-r from-slate-900 to-indigo-950 px-4.5 py-4 flex items-center justify-between shadow">
                 <div className="flex items-center space-x-2">
                   <span className="text-lg">📢</span>
-                  <span className="font-bold text-white text-sm sm:text-base">Arifa na Ripoti za Duka</span>
+                  <span className="font-bold text-white text-sm sm:text-base">Alert na Ripoti za Duka</span>
                 </div>
                 
                 {hasUnread && (
@@ -215,7 +215,7 @@ export default function NotificationCenter() {
                       <Check className="w-7 h-7" />
                     </div>
                     <h4 className="font-semibold text-gray-800 text-sm sm:text-base">Kila Kitu Kiko Salama!</h4>
-                    <p className="text-gray-500 text-xs mt-1 max-w-[240px]">Hakuna arifa, taarifa za shaka au hatari ya kumalizika kwa leseni kwa sasa.</p>
+                    <p className="text-gray-500 text-xs mt-1 max-w-[240px]">Hakuna alert, taarifa za shaka au hatari ya kumalizika kwa muda wa Mfumo kwa sasa.</p>
                   </div>
                 ) : (
                   notificationsList.map((notification) => {
@@ -260,7 +260,7 @@ export default function NotificationCenter() {
                           </div>
 
                           <button 
-                            onClick={() => markNotificationRead(notification.id)}
+                            onClick={() => dismissNotification(notification.id)}
                             className="text-gray-400 hover:text-gray-600 hover:bg-slate-100 p-1 rounded-full leading-none transition-colors"
                             title="Futa arifa hii"
                           >
@@ -274,10 +274,10 @@ export default function NotificationCenter() {
 
                         <div className="flex border-t border-slate-100 mt-2.5 pt-2 items-center justify-end gap-1.5">
                           <button
-                            onClick={() => markNotificationRead(notification.id)}
+                            onClick={() => dismissNotification(notification.id)}
                             className="text-[10.5px] font-bold text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 rounded transition-all cursor-pointer"
                           >
-                            Mark Read
+                            Ondoa
                           </button>
                           <button
                             onClick={() => handleSeeMore(notification.page, notification.id)}

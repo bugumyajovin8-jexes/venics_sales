@@ -486,7 +486,7 @@ export default function Historia() {
           items: backdatedSaleCart.map(i => ({ name: i.name, qty: i.qty })),
           employee_name: user?.name || 'Mhudumu',
           historical_date: historicalIsoDate,
-          warning: `Amerekodi mauzo ya siku za nyuma ambayo hayakuwepo.`
+          warning: `Amerekodi mauzo ya tarehe ya nyuma (Backdated). Hii inamaanisha ameingiza muamala baada ya siku husika kupita.`
         });
 
         if (anomaliesHeavyDiscountToLog.length > 0) {
@@ -496,7 +496,7 @@ export default function Historia() {
             amount: anomaliesHeavyDiscountToLog.reduce((sum, d) => sum + d.discounted_price, 0),
             employee_name: user?.name || 'Mhudumu',
             details: anomaliesHeavyDiscountToLog,
-            warning: `[Mauzo ya nyuma] Amepunguza bei kiasi kikubwa au kuuza chini ya bei ya kununulia. Bidhaa: ${anomaliesDesc}`
+            warning: `[Mauzo ya nyuma] Amepunguza bei ya kuuzia kwa kiasi kikubwa au kuuza chini ya bei halisi ya mzigo stoo. Bidhaa: ${anomaliesDesc}`
           });
         }
       });
@@ -624,7 +624,7 @@ export default function Historia() {
       switch(filter) {
         case 'leo': startDateNum = startOfDay(n).getTime(); break;
         case 'jana': startDateNum = startOfDay(subDays(n, 1)).getTime(); break;
-        case 'wiki': startDateNum = startOfWeek(n).getTime(); break;
+        case 'wiki': startDateNum = startOfWeek(n, { weekStartsOn: 0 }).getTime(); break;
         case 'mwezi': startDateNum = startOfMonth(n).getTime(); break;
         case 'miezi6': startDateNum = subMonths(n, 6).getTime(); break;
         case 'mwaka': startDateNum = startOfYear(n).getTime(); break;
@@ -669,7 +669,7 @@ export default function Historia() {
       switch(filter) {
         case 'leo': startDateNum = startOfDay(n).getTime(); break;
         case 'jana': startDateNum = startOfDay(subDays(n, 1)).getTime(); break;
-        case 'wiki': startDateNum = startOfWeek(n).getTime(); break;
+        case 'wiki': startDateNum = startOfWeek(n, { weekStartsOn: 0 }).getTime(); break;
         case 'mwezi': startDateNum = startOfMonth(n).getTime(); break;
         case 'miezi6': startDateNum = subMonths(n, 6).getTime(); break;
         case 'mwaka': startDateNum = startOfYear(n).getTime(); break;
@@ -696,7 +696,7 @@ export default function Historia() {
     switch(filter) {
       case 'leo': return startOfDay(now).getTime();
       case 'jana': return startOfDay(subDays(now, 1)).getTime();
-      case 'wiki': return startOfWeek(now).getTime();
+      case 'wiki': return startOfWeek(now, { weekStartsOn: 0 }).getTime();
       case 'mwezi': return startOfMonth(now).getTime();
       case 'miezi6': return subMonths(now, 6).getTime();
       case 'mwaka': return startOfYear(now).getTime();
@@ -852,14 +852,42 @@ export default function Historia() {
         TelemetryService.trackRefundSale(saleId, sale.total_amount);
 
         // 5. Anomaly Detection: Delayed Sale Deletion
-        const timeDiffMinutes = (new Date().getTime() - new Date(sale.created_at).getTime()) / (1000 * 60);
+        const saleCreatedAt = new Date(sale.created_at);
+        const timeDiffMinutes = (new Date().getTime() - saleCreatedAt.getTime()) / (1000 * 60);
         if (timeDiffMinutes > 30) {
+          const formattedSaleDate = format(saleCreatedAt, 'dd MMM yyyy, HH:mm');
+          
+          let friendlyAgo = '';
+          const diffMinutesRounded = Math.round(timeDiffMinutes);
+          if (diffMinutesRounded < 60) {
+            friendlyAgo = `dakika ${diffMinutesRounded}`;
+          } else {
+            const diffHours = Math.round(diffMinutesRounded / 60);
+            if (diffHours < 24) {
+              friendlyAgo = `saa ${diffHours}`;
+            } else {
+              const diffDays = Math.round(diffHours / 24);
+              if (diffDays < 7) {
+                friendlyAgo = `siku ${diffDays}`;
+              } else if (diffDays < 30) {
+                const diffWeeks = Math.round(diffDays / 7);
+                friendlyAgo = `wiki ${diffWeeks}`;
+              } else {
+                const diffMonths = Math.round(diffDays / 30);
+                friendlyAgo = `miezi ${diffMonths}`;
+              }
+            }
+          }
+
+          const productNames = items.map(i => `${i.product_name} (${i.qty} pcs)`).join(', ');
+
           await SyncService.logAction('anomaly_delayed_delete', {
             sale_id: saleId,
-            time_passed_minutes: Math.round(timeDiffMinutes),
+            time_passed_minutes: diffMinutesRounded,
             amount: sale.total_amount,
             employee_name: user?.name || 'Mhudumu',
-            warning: 'Amefuta (delete) mauzo zaidi ya dakika 30 tangu yafanyike.'
+            name: productNames,
+            warning: `Amefuta (delete) mauzo ya tarehe ${formattedSaleDate} (takriban ${friendlyAgo} zilizopita) tangu yafanyike.`
           });
         }
       });
@@ -1867,7 +1895,7 @@ export default function Historia() {
                   <option value="Mishahara ya duka">Mishahara na Posho za Wafanyakazi</option>
                   <option value="Ulinzi & usalama">Ulinzi wa Duka</option>
                   <option value="Ukarabati & fanicha">Ukarabati na Vifaa vya duka</option>
-                  <option value="Kodi ya serikali/Laini">Kodi ya Serikali / TRA, Leseni</option>
+                  <option value="Kodi ya serikali/Laini">Kodi ya Serikali / TRA, Kibali</option>
                   <option value="Mengineyo">Matumizi Mengineyo (Nyingine)</option>
                 </select>
               </div>

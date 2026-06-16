@@ -3,18 +3,25 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type AssistantChat } from '../db';
 import { useStore } from '../store';
 import { GoogleGenAI } from '@google/genai';
+import { supabase } from '../supabase';
 import VenicsLogo from './VenicsLogo';
 import { v4 as uuidv4 } from 'uuid';
 import { 
   MessageSquare, X, Send, Bot, User, Sparkles, 
   FileText, Wallet, CreditCard, Package, Clock, ShieldCheck, ArrowUpRight, TrendingUp,
-  RefreshCw, CheckCircle, AlertTriangle, WifiOff, Moon
+  RefreshCw, CheckCircle, AlertTriangle, WifiOff, Moon, Users, Settings, Plus
 } from 'lucide-react';
 import { format, startOfDay, subDays, startOfWeek, subMonths, isToday, differenceInDays } from 'date-fns';
 import { formatCurrency } from '../utils/format';
 import { useNavigate } from 'react-router-dom';
 import { SyncService } from '../services/sync';
 import { TelemetryService } from '../services/telemetry';
+import { IntentEngine } from '../services/mshauri/IntentEngine';
+import { BusinessLogic } from '../services/mshauri/BusinessLogic';
+import { ResponseGenerator } from '../services/mshauri/ResponseGenerator';
+import { KnowledgeBase } from '../services/mshauri/KnowledgeBase';
+import { AdvancedAnalytics } from '../services/mshauri/AdvancedAnalytics';
+import { FollowUpEngine } from '../services/mshauri/FollowUpEngine';
 
 interface Message {
   id: string;
@@ -25,6 +32,7 @@ interface Message {
   initialPeriod?: 'week' | 'month' | 'months6';
   intent?: string;
   query?: string;
+  followUps?: string[];
   timestamp: Date;
   isInsight?: boolean;
   action?: {
@@ -178,6 +186,215 @@ function SyncDiagResponse() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function InlineAddStaffForm() {
+  const { user, isBoss } = useStore();
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isBoss()) {
+      setStatus({ type: 'error', message: 'Huruhusiwi. Bosi pekee ndiye anayeweza kualika wafanyakazi mpya.' });
+      return;
+    }
+    if (!email || !user?.shopId) return;
+
+    setLoading(true);
+    setStatus({ type: 'idle', message: '' });
+
+    try {
+      // 1. Check if user is already in this shop
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, shop_id')
+        .eq('email', email.trim().toLowerCase())
+        .single();
+
+      if (existingUser && existingUser.shop_id === user.shopId) {
+        throw new Error('Mfanyakazi huyu tayari yupo kwenye duka lako.');
+      }
+
+      // 2. Create invitation in Supabase
+      const { error: inviteError } = await supabase
+        .from('shop_invitations')
+        .insert({
+          shop_id: user.shopId,
+          email: email.trim().toLowerCase(),
+          role: 'employee',
+          created_at: new Date().toISOString()
+        });
+
+      if (inviteError) {
+        if (inviteError.code === '23505') {
+          throw new Error('Mwaliko kwa email hii tayari upo. Mfanyakazi anapaswa tu kujisajili (Register) ili kujiunga.');
+        }
+        throw inviteError;
+      }
+
+      TelemetryService.trackAddStaff(email.trim().toLowerCase(), 'employee');
+      
+      setStatus({ 
+        type: 'success', 
+        message: `Mwaliko umetumwa kwa ${email.trim()}! Hakikisha anajisajili (Register) kwa kutumia email hii sasa hivi.` 
+      });
+      setEmail('');
+    } catch (err: any) {
+      console.error('Invite staff error:', err);
+      setStatus({ type: 'error', message: err.message || 'Imeshindwa kutuma mwaliko. Jaribu tena.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-slate-50 border border-slate-200/60 p-3.5 rounded-2xl space-y-3 shadow-sm max-w-sm mt-1">
+      <div className="flex items-center space-x-2 pb-1 border-b border-slate-100">
+        <Users className="w-4.5 h-4.5 text-indigo-600" />
+        <span className="font-extrabold text-sm text-slate-800">Sajili/Alika Mfanyakazi Mpya:</span>
+      </div>
+
+      {status.type === 'success' && (
+        <div className="p-2.5 bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs rounded-xl flex items-start space-x-1.5 leading-relaxed">
+          <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+          <span>{status.message}</span>
+        </div>
+      )}
+
+      {status.type === 'error' && (
+        <div className="p-2.5 bg-red-50 border border-red-100/50 text-red-800 text-xs rounded-xl flex items-start space-x-1.5 leading-relaxed">
+          <AlertTriangle className="w-3.5 h-3.5 text-red-650 shrink-0 mt-0.5" />
+          <span>{status.message}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleInvite} className="space-y-2.5">
+        <div>
+          <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Barua Pepe / Email ya Mfanyakazi:</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="mfanyakazi@gmail.com"
+            required
+            disabled={loading}
+            className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || !email}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 font-bold text-white text-xs py-2 px-3 rounded-xl transition-all shadow-md active:scale-98 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center space-x-1"
+        >
+          {loading ? (
+            <>
+              <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1" />
+              <span>Inatuma Mwaliko...</span>
+            </>
+          ) : (
+            <>
+              <Plus className="w-3.5 h-3.5 mr-0.5" />
+              <span>Tuma mwaliko sasa</span>
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function InlineToggleFeaturesForm() {
+  const { isBoss } = useStore();
+  const features = useStore(state => state.features);
+  const isFeatureEnabled = (key: string) => features[key] === true;
+  const [updating, setUpdating] = useState<string | null>(null);
+
+  const handleToggle = async (key: string, currentVal: boolean) => {
+    if (!isBoss()) {
+      alert("Huruhusiwi. Bosi au Meneja pekee ndiye anayeweza kubadili vipengele vya duka.");
+      return;
+    }
+    setUpdating(key);
+    try {
+      const nextVal = !currentVal;
+      await SyncService.toggleFeature(key, nextVal);
+      await TelemetryService.trackFeatureFlagToggle(key, nextVal);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const featuresList = [
+    {
+      key: 'staff_product_management',
+      label: 'Ruhusu Wafanyakazi Kubadili Bidhaa',
+      desc: 'Watumishi wanaruhusiwa kuongeza, kufuta au kubadili bei ya bidhaa mbalimbali.',
+      color: 'bg-blue-600',
+    },
+    {
+      key: 'staff_expense_management',
+      label: 'Ruhusu Wafanyakazi Kurekodi Matumizi',
+      desc: 'Watumishi wanaruhusiwa kuandika na kurekodi gharama za matumizi duka hivi sasa.',
+      color: 'bg-orange-600',
+    },
+    {
+      key: 'show_mapato_to_staff',
+      label: 'Onyesha Mapato/Faida kwa Wafanyakazi',
+      desc: 'Soma jopo kuu la mauzo kwa watumishi wote (wakizima wataona dashboard tu).',
+      color: 'bg-purple-600',
+    }
+  ];
+
+  return (
+    <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl space-y-3 max-w-sm shadow-sm mt-1">
+      <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/50">
+        <Settings className="w-4 h-4 text-indigo-600" />
+        <span className="font-extrabold text-sm text-slate-800">Udhibiti wa Ruhusa & Vipengele:</span>
+      </div>
+
+      <div className="space-y-2.5">
+        {featuresList.map((f) => {
+          const isEnabled = isFeatureEnabled(f.key);
+          const isPending = updating === f.key;
+
+          return (
+            <div key={f.key} className="bg-white p-3 rounded-xl border border-slate-100 flex items-start justify-between space-x-3 text-xs shadow-3xs">
+              <div className="space-y-0.5">
+                <span className="font-bold text-slate-800 block text-[12.5px] leading-snug">{f.label}</span>
+                <span className="text-slate-400 text-[10px] block leading-normal">{f.desc}</span>
+              </div>
+
+              <div className="shrink-0 pt-0.5">
+                <button
+                  disabled={isPending}
+                  onClick={() => handleToggle(f.key, isEnabled)}
+                  className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center ${
+                    isEnabled ? f.color : 'bg-gray-300'
+                  } ${isPending ? 'opacity-50' : 'cursor-pointer hover:opacity-95'}`}
+                >
+                  <div
+                    className={`absolute w-3.5 h-3.5 bg-white rounded-full transition-all shadow-4xs ${
+                      isEnabled ? 'left-5.5' : 'left-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="p-2 bg-indigo-50 border border-indigo-100 rounded-xl text-[10px] text-indigo-900 leading-normal flex items-start space-x-1">
+        <span>💡</span>
+        <span>Ukibadilisha ruhusa hizi, zitachukua nafasi mara moja kwenye vifaa vyote vya wafanyakazi.</span>
+      </div>
     </div>
   );
 }
@@ -427,7 +644,7 @@ function SingleEmployeeReport({
         </div>
         <p className="text-[11px] text-indigo-950 font-medium leading-relaxed">
           {recentAnomalies.length > 0 
-            ? `Bosi, mhudumu ${employee.name} ana ${recentAnomalies.length} kiashiria cha tabia shaka (red flags). Unashauriwa kufanya kikao cha faragha naye upitie daftari la ulinzi (audit logs). Msisitizie kuwa duka letu linatumia ulinzi wa kidijitali wa AI kufuatilia mapunguzo ya bei na kufuta bidhaa ili kuzuia upotevu wa mtaji.`
+            ? `Bosi, mhudumu ${employee.name} ana ${recentAnomalies.length} kiashiria cha mabadiliko yenye mashaka duka letu. Unashauriwa kufanya mazungumzo ya kirafiki naye na kupitia daftari la mabadiliko ya duka na bidhaa. Msisitizie kwa upole kuwa mfumo wetu unafuatilia mapunguzo ya bei pamoja na kufuta bidhaa kwenye kikapu ili kusaidia uendeshaji wenye tija.`
             : `Mhudumu ${employee.name} anaonyesha uaminifu wa hali ya juu na mfululizo mzuri wa uuzaji duka letu. Unashauriwa kumpatia motisha ndogo (marupurupu au pongezi ya hadhara) ili kumtia moyo na kuendelea kukuza mauzo kwa uaminifu zaidi!`
           }
         </p>
@@ -503,9 +720,9 @@ export default function MshauriChat() {
     if (securityScore >= 10 && (salesDeletesCount > 0 || cartVoidsCount > 0 || chatAnomalies.length > 0)) {
       let insightContent = '';
       if (salesDeletesCount > 0 || cartVoidsCount > 0) {
-        insightContent = `Nimeona mienendo ya shaka leo: kurejesha miamala (${salesDeletesCount}) na voids za kikapu (${cartVoidsCount}). Kagua audit logs sasa kuhakikisha usalama wa pesa zako.`;
+        insightContent = `Nimeona mabadiliko duka leo: kurejesha miamala ya mauzo (${salesDeletesCount}) na kufuta bidhaa kwenye kikapu (mara ${cartVoidsCount}). Kagua daftari la mabadiliko ya duka sasa ili kuhakikisha usalama wa pesa zako.`;
       } else if (chatAnomalies.length > 0) {
-        insightContent = `Nimebaini tabia zisizo za kawaida ${chatAnomalies.length} katika matumizi ya mfumo leo. Ni vizuri kukagua daftari la ulinzi (Audit Logs) kuzuia mianya ya upotevu.`;
+        insightContent = `Nimebaini mabadiliko yasiyo ya kawaida ${chatAnomalies.length} katika matumizi ya mfumo leo. Ni vizuri kukagua daftari la mabadiliko ya duka ili kuzuia mianya ya upotevu.`;
       }
 
       if (insightContent) {
@@ -514,9 +731,9 @@ export default function MshauriChat() {
           priority: 100,
           type: 'security',
           id: stableId,
-          title: '🚨 Tahadhari ya Usalama (Leo)!',
+          title: '🚨 Ripoti ya Mabadiliko (Leo)!',
           content: insightContent,
-          action: { label: 'Kagua Audit Logs', path: '/audit-logs' }
+          action: { label: 'Kagua Mabadiliko duka', path: '/audit-logs' }
         });
       }
     }
@@ -532,9 +749,9 @@ export default function MshauriChat() {
           priority: 95,
           type: 'license',
           id: stableId,
-          title: '⏳ Leseni inaisha hivi karibuni!',
-          content: `Leseni ya duka lako itakwisha baada ya siku **${daysLeft}** pekee. Lipia sasa ili kuzuia huduma kusimama (Downtime).`,
-          action: { label: 'Lipia Leseni', path: '/zaidi' }
+          title: '⏳ Huduma ya Mfumo itaisha hivi karibuni!',
+          content: `Muda wa kutumia Mfumo kwenye duka lako utaisisha baada ya siku **${daysLeft}** pekee. Rekebisha sasa ili kuzuia huduma kusimama (Downtime).`,
+          action: { label: 'Rekebisha Sasa', path: '/zaidi' }
         });
       } else if (daysLeft <= 0) {
          const stableId = `license-expired`;
@@ -542,9 +759,9 @@ export default function MshauriChat() {
           priority: 110,
           type: 'license',
           id: stableId,
-          title: '❌ Leseni imekwisha muda wake!',
-          content: `Leseni ya duka hili imekwisha. Tafadhali lipia ili kurejesha huduma kamili na kuendelea kuwahudumia wateja.`,
-          action: { label: 'Lipia Leseni', path: '/zaidi' }
+          title: '❌ Muda wa Mfumo umekwisha!',
+          content: `Huduma ya Mfumo kwenye duka hili imekwisha muda wake. Tafadhali fanya marekebisho ili kurejesha huduma kamili na kuendelea kuwahudumia wateja.`,
+          action: { label: 'Rekebisha Sasa', path: '/zaidi' }
         });
       }
     }
@@ -614,8 +831,33 @@ export default function MshauriChat() {
   const [lastIntent, setLastIntent] = useState<'sales' | 'expenses' | 'debts' | 'stock' | 'behavior' | 'bestselling' | 'unknown'>('unknown');
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
+  const [defaultQuickOptions] = useState(() => {
+    const ALL_QUICK_ACTIONS = [
+      "Faida ya leo kiasi gani?",
+      "Bidhaa gani zinauzwa sana?",
+      "Bidhaa gani zimedoda stoo?",
+      "Bidhaa zinazoisha stoo?",
+      "Nani anadaiwa hela nyingi?"
+    ];
+    return [...ALL_QUICK_ACTIONS].sort(() => 0.5 - Math.random()).slice(0, 3);
+  });
   const [sessionStartTime] = useState(() => new Date());
+  const [welcomeDismissed, setWelcomeDismissed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('mshauri_welcome_dismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleDismissWelcome = () => {
+    try {
+      localStorage.setItem('mshauri_welcome_dismissed', 'true');
+      setWelcomeDismissed(true);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -720,11 +962,9 @@ export default function MshauriChat() {
     const countStr = localStorage.getItem('mshauri_open_count') || '0';
     const currentCount = parseInt(countStr, 10) || 0;
 
-    const filteredHistory = showHistory 
-      ? historyMsg 
-      : historyMsg.filter(m => m.timestamp.getTime() >= sessionStartTime.getTime());
+    const filteredHistory = historyMsg.filter(m => m.timestamp.getTime() >= sessionStartTime.getTime());
 
-    if (currentCount < 5 || (!showHistory && filteredHistory.length === 0)) {
+    if (!welcomeDismissed && currentCount < 5) {
       const welcomeId = 'welcome_msg';
       const welcomeMsgText = `Habari Boss ${user.name || 'Bosi'}! Mimi ni Venics Assistant wako wa Biashara aliyebobea. Niulize maswali mazito ya ki-uchambuzi au maswali ya mzunguko wa stock, kubana matumizi na ulinzi wa duka.`;
       
@@ -732,13 +972,26 @@ export default function MshauriChat() {
         id: welcomeId,
         sender: 'bot',
         text: welcomeMsgText,
-        timestamp: new Date(0) // order it first
+        timestamp: new Date(0), // order it first
+        followUps: getProactiveInsights().length === 0 ? defaultQuickOptions : undefined
       };
       setMessages([welcomeMsg, ...filteredHistory]);
+    } else if (filteredHistory.length === 0 && getProactiveInsights().length === 0) {
+      const emptyStateId = 'empty_state_msg';
+      const emptyMsgText = `Habari Boss ${user.name || 'Bosi'}, nipo hapa kwa ajili yako. Nikusaidie nini leo kuhusu taarifa za duka lako?`;
+      
+      const emptyStateMsg: Message = {
+        id: emptyStateId,
+        sender: 'bot',
+        text: emptyMsgText,
+        timestamp: new Date(0), 
+        followUps: defaultQuickOptions
+      };
+      setMessages([emptyStateMsg, ...filteredHistory]);
     } else {
       setMessages(filteredHistory);
     }
-  }, [dbChats, user?.shopId, user?.name, showHistory, sessionStartTime]);
+  }, [dbChats, user?.shopId, user?.name, sessionStartTime, welcomeDismissed, defaultQuickOptions]);
 
   const getShopContext = () => {
     // 1. Inventory Summary
@@ -844,6 +1097,59 @@ export default function MshauriChat() {
   const formatResponseText = (text: string) => {
     if (typeof text !== 'string') return text;
     
+    // Simple robust tokenizer/formatter to parse both **bold**, *italic*, and "clickable suggestions"
+    const formatLineContent = (contentString: string, keyPrefix: string) => {
+      const elements: React.ReactNode[] = [];
+      const tokenRegex = /(\*\*(.*?)\*\*)|(\*(.*?)\*)|("(.*?)")/g;
+      let match;
+      let lastIdx = 0;
+
+      while ((match = tokenRegex.exec(contentString)) !== null) {
+        if (match.index > lastIdx) {
+          elements.push(contentString.substring(lastIdx, match.index));
+        }
+        
+        const isBold = match[1] !== undefined;
+        const isItalic = match[3] !== undefined;
+        const isQuoted = match[5] !== undefined;
+        
+        if (isBold) {
+          elements.push(
+            <strong key={`${keyPrefix}-b-${match.index}`} className="font-bold text-slate-900 bg-indigo-50/70 px-1 rounded">
+              {formatLineContent(match[2], `${keyPrefix}-b-inner-${match.index}`)}
+            </strong>
+          );
+        } else if (isItalic) {
+          elements.push(
+            <em key={`${keyPrefix}-i-${match.index}`} className="italic font-medium text-slate-800">
+              {formatLineContent(match[4], `${keyPrefix}-i-inner-${match.index}`)}
+            </em>
+          );
+        } else if (isQuoted) {
+          const suggestion = match[6];
+          elements.push(
+            <button
+              key={`${keyPrefix}-q-${match.index}`}
+              onClick={(e) => {
+                e.preventDefault();
+                sendMessage(suggestion);
+              }}
+              className="inline-flex items-center text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border-b border-indigo-200 px-1 mx-0.5 rounded transition-all cursor-pointer font-medium underline decoration-indigo-300 underline-offset-2"
+            >
+              "{suggestion}"
+            </button>
+          );
+        }
+        lastIdx = tokenRegex.lastIndex;
+      }
+
+      if (lastIdx < contentString.length) {
+        elements.push(contentString.substring(lastIdx));
+      }
+
+      return elements.length > 0 ? elements : [contentString];
+    };
+
     return text.split('\n').map((line, i) => {
       let cleanLine = line.trim();
       if (!cleanLine) return <div key={i} className="h-2" />;
@@ -860,28 +1166,11 @@ export default function MshauriChat() {
         );
       }
       
-      // Check for bold sections inside line
-      const parts = [];
-      const boldRegex = /\*\*(.*?)\*\*/g;
-      let match;
-      let lastIdx = 0;
-      
-      while ((match = boldRegex.exec(cleanLine)) !== null) {
-        if (match.index > lastIdx) {
-          parts.push(cleanLine.substring(lastIdx, match.index));
-        }
-        parts.push(<strong key={match.index} className="font-bold text-slate-900 bg-indigo-50/70 px-1 rounded">{match[1]}</strong>);
-        lastIdx = boldRegex.lastIndex;
-      }
-      if (lastIdx < cleanLine.length) {
-        parts.push(cleanLine.substring(lastIdx));
-      }
-
-      const formattedContent = parts.length > 0 ? parts : cleanLine;
-
-      // Check for lists (e.g., - Item or * Item)
-      if (cleanLine.startsWith('-') || cleanLine.startsWith('*')) {
-        const listContent = cleanLine.replace(/^[-*]\s*/, '');
+      // Check for bullet lists (e.g., - Item or * Item where item starts with a space)
+      const bulletMatch = cleanLine.match(/^([-*])\s+(.*)/);
+      if (bulletMatch) {
+        const listContent = bulletMatch[2];
+        const formattedContent = formatLineContent(listContent, `list-${i}`);
         return (
           <div key={i} className="flex items-start space-x-2.5 pl-4 py-1.5 text-base sm:text-[16.5px] my-0.5 text-slate-700">
             <span className="text-indigo-500 shrink-0 select-none font-bold text-lg">•</span>
@@ -891,17 +1180,21 @@ export default function MshauriChat() {
       }
 
       // Check for numbered list
-      if (/^\d+\.\s+/.test(cleanLine)) {
-        const num = cleanLine.match(/^(\d+)\./)?.[1];
-        const rest = cleanLine.replace(/^\d+\.\s*/, '');
+      const numberMatch = cleanLine.match(/^(\d+)\.\s+(.*)/);
+      if (numberMatch) {
+        const num = numberMatch[1];
+        const rest = numberMatch[2];
+        const formattedContent = formatLineContent(rest, `num-${i}`);
         return (
           <div key={i} className="flex items-start space-x-2.5 pl-4 py-1.5 text-base sm:text-[16.5px] text-slate-700">
             <span className="font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5">{num}</span>
-            <span className="leading-relaxed">{rest}</span>
+            <span className="leading-relaxed">{formattedContent}</span>
           </div>
         );
       }
 
+      // Otherwise it is a standard paragraph
+      const formattedContent = formatLineContent(cleanLine, `p-${i}`);
       return (
         <p key={i} className="leading-relaxed text-base sm:text-[16.5px] text-slate-700 my-2 block">
           {formattedContent}
@@ -944,6 +1237,7 @@ export default function MshauriChat() {
   const parsePeriod = (textStr: string): { 
     label: string; 
     filterKey: 'leo' | 'jana' | 'wiki' | 'mwezi' | 'miezi6' | 'mwaka' | 'yote'; 
+    targetView: 'risiti' | 'ripoti';
     matchFn: (date: Date) => boolean 
   } => {
     const now = new Date();
@@ -955,6 +1249,7 @@ export default function MshauriChat() {
       return {
         label: 'Jana (Yesterday)',
         filterKey: 'jana',
+        targetView: 'risiti',
         matchFn: (d) => d.toDateString() === janaStr
       };
     }
@@ -964,10 +1259,11 @@ export default function MshauriChat() {
       return {
         label: 'Wiki Hii',
         filterKey: 'wiki',
+        targetView: 'risiti',
         matchFn: (d) => d >= startOfW
       };
     }
-
+    
     // Check specific English & Swahili months
     const months = [
       { names: ['january', 'januari', 'jan'], index: 0, label: 'Januari' },
@@ -990,6 +1286,7 @@ export default function MshauriChat() {
         return {
           label: m.label,
           filterKey: 'mwezi',
+          targetView: 'ripoti',
           matchFn: (d) => d.getMonth() === m.index && d.getFullYear() === year
         };
       }
@@ -1002,6 +1299,7 @@ export default function MshauriChat() {
       return {
         label: 'Mwezi Uliopita',
         filterKey: 'mwezi',
+        targetView: 'ripoti',
         matchFn: (d) => d.getMonth() === mIndex && d.getFullYear() === yVal
       };
     }
@@ -1012,6 +1310,7 @@ export default function MshauriChat() {
       return {
         label: 'Mwezi Huu',
         filterKey: 'mwezi',
+        targetView: 'risiti',
         matchFn: (d) => d.getMonth() === currentM && d.getFullYear() === yVal
       };
     }
@@ -1021,13 +1320,33 @@ export default function MshauriChat() {
     return {
       label: 'Leo (Today)',
       filterKey: 'leo',
+      targetView: 'risiti',
       matchFn: (d) => d.toDateString() === todayStr
     };
   };
 
-  const processQuery = (query: string, resolvedIntent: 'sales' | 'expenses' | 'debts' | 'stock' | 'behavior' | 'bestselling' | 'unknown'): React.ReactNode => {
+  const processQuery = (query: string, resolvedIntent: string): React.ReactNode => {
     const text = query.toLowerCase().trim();
     const period = parsePeriod(text);
+
+    if (resolvedIntent === 'ACTION_ADD_STAFF') {
+      return <InlineAddStaffForm />;
+    }
+    if (resolvedIntent === 'ACTION_TOGGLE_FEATURES') {
+      return <InlineToggleFeaturesForm />;
+    }
+
+    // Normalize new uppercase intents to legacy lowercase ones
+    let activeIntent = resolvedIntent;
+    if (resolvedIntent === 'REPORT_SALES') activeIntent = 'sales';
+    else if (resolvedIntent === 'REPORT_EXPENSES') activeIntent = 'expenses';
+    else if (resolvedIntent === 'REPORT_DEBTS') activeIntent = 'debts';
+    else if (resolvedIntent === 'REPORT_STOCK') activeIntent = 'stock';
+    else if (resolvedIntent === 'REPORT_SECURITY') activeIntent = 'behavior';
+    else if (resolvedIntent === 'REPORT_BEST_SELLING') activeIntent = 'bestselling';
+    else if (resolvedIntent === 'REPORT_COMPARISON') activeIntent = 'comparison';
+    else if (resolvedIntent === 'REPORT_BUSINESS') activeIntent = 'business';
+    resolvedIntent = activeIntent as any;
 
     // A. SALES & PROFIT INTENT
     if (resolvedIntent === 'sales') {
@@ -1055,11 +1374,11 @@ export default function MshauriChat() {
           <button
             onClick={() => {
               setIsOpen(false);
-              navigate('/historia', { state: { filter: period.filterKey, view: 'ripoti' } });
+              navigate('/historia', { state: { filter: period.filterKey, view: period.targetView } });
             }}
             className="w-full mt-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
           >
-            <span>📊 Fungua Ripoti za {period.label}</span>
+            <span>📊 {period.targetView === 'risiti' ? 'Orodha ya Risiti' : 'Ripoti za Biashara'} ({period.label})</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -1113,7 +1432,7 @@ export default function MshauriChat() {
             <button
               onClick={() => {
                 setIsOpen(false);
-                navigate('/historia', { state: { filter: period.filterKey, view: 'ripoti' } });
+                navigate('/historia', { state: { filter: period.filterKey, view: period.targetView } });
               }}
               className="py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
             >
@@ -1260,11 +1579,11 @@ export default function MshauriChat() {
           <button
             onClick={() => {
               setIsOpen(false);
-              navigate('/historia', { state: { filter: period.filterKey, view: 'ripoti' } });
+              navigate('/historia', { state: { filter: period.filterKey, view: period.targetView } });
             }}
             className="w-full mt-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
           >
-            <span>📊 Angalia Ripoti Kamili</span>
+            <span>📊 {period.targetView === 'risiti' ? 'Orodha ya Risiti' : 'Ripoti za Biashara'} ({period.label})</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -1339,9 +1658,97 @@ export default function MshauriChat() {
             }}
             className="w-full mt-2 py-2 px-3 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
           >
-            <span>🚨 Fungua Daftari la Ulinzi (Audit Logs)</span>
+            <span>🚨 Fungua Daftari la Mabadiliko ya Duka</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
+        </div>
+      );
+    }
+
+    // F2. COMPARISON INTENT
+    if (resolvedIntent === 'comparison') {
+      let compPeriod = 'week';
+      if (text.match(/mwezi|month/i)) compPeriod = 'month';
+      else if (text.match(/siku|day|jana|leo|yesterday|today/i)) compPeriod = 'day';
+
+      const data = BusinessLogic.getComparisonReport(sales, expenses, compPeriod);
+      const cur = data.current;
+      const prev = data.previous;
+      const chg = data.changes;
+
+      const revUp = chg.revenuePct >= 0;
+      const profUp = chg.profitPct >= 0;
+      const expUp = chg.expensesPct >= 0;
+      const netUp = chg.netProfitPct >= 0;
+
+      return (
+        <div className="space-y-3">
+          <p className="font-semibold text-slate-800 flex items-center text-sm">
+            <Sparkles className="w-4 h-4 mr-1 text-indigo-600 animate-pulse animate-duration-[2000ms]" />
+            Ulinganisho wa Biashara ({data.periodNameCurrent} Vs {data.periodNamePrevious}):
+          </p>
+
+          <div className="space-y-2">
+            {/* Revenue Row */}
+            <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-xl flex items-center justify-between">
+              <div>
+                <span className="text-xs text-slate-500 block">Mauzo (Revenue)</span>
+                <span className="font-extrabold text-sm text-slate-800">{formatCurrency(cur.revenue, currency)}</span>
+                <span className="text-[10px] text-slate-400 block">Kabla: {formatCurrency(prev.revenue, currency)}</span>
+              </div>
+              <span className={`text-xs font-black px-2 py-1 rounded-lg ${revUp ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                {revUp ? '▲' : '▼'} {Math.abs(chg.revenuePct).toFixed(1)}%
+              </span>
+            </div>
+
+            {/* Expenses Row */}
+            <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-xl flex items-center justify-between">
+              <div>
+                <span className="text-xs text-slate-500 block">Matumizi (Expenses)</span>
+                <span className="font-extrabold text-sm text-slate-800">{formatCurrency(cur.expenses, currency)}</span>
+                <span className="text-[10px] text-slate-400 block">Kabla: {formatCurrency(prev.expenses, currency)}</span>
+              </div>
+              <span className={`text-xs font-black px-2 py-1 rounded-lg ${expUp ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                {expUp ? '▲' : '▼'} {Math.abs(chg.expensesPct).toFixed(1)}%
+              </span>
+            </div>
+
+            {/* Net Profit Row */}
+            <div className="bg-indigo-50 border border-indigo-100 p-2.5 rounded-xl flex items-center justify-between">
+              <div>
+                <span className="text-xs text-indigo-600 font-medium block">Faida Halisi (Net Profit)</span>
+                <span className="font-black text-sm text-indigo-700">{formatCurrency(cur.netProfit, currency)}</span>
+                <span className="text-[10px] text-slate-400 block">Kabla: {formatCurrency(prev.netProfit, currency)}</span>
+              </div>
+              <span className={`text-xs font-black px-2 py-1 rounded-lg ${netUp ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                {netUp ? '▲' : '▼'} {Math.abs(chg.netProfitPct).toFixed(1)}%
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-indigo-50/50 border border-indigo-100/50 p-2.5 rounded-xl text-[11px] text-indigo-950 leading-relaxed">
+            <span className="font-bold text-indigo-900 block mb-0.5">💡 Ushauri wa Haraka:</span>
+            {chg.expensesPct > chg.revenuePct && chg.expensesPct > 0 ? (
+              <span>⚠️ Gharama zako za uendeshaji zinakua haraka kupita mapato. Dhibiti matumizi ya duka kuzuia upotevu wa faida.</span>
+            ) : chg.revenuePct < 0 ? (
+              <span>📉 Mauzo yamedhoofika kulingana na kipindi cha zamani. Jaribu kuhamasisha Wafanyakazi na kuongeza upatikanaji wa bidhaa zenye mzunguko mkubwa.</span>
+            ) : (
+              <span>🚀 Biashara inaendelea vizuri duka lako! Jaza mzigo wa bidhaa zinazopendwa sana (bestsellers) ili kuzidisha faida maradufu.</span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // G2. BUSINESS REPORT INTENT
+    if (resolvedIntent === 'business') {
+      const bizData = BusinessLogic.getBusinessSummary(sales, expenses, products, period.filterKey === 'jana' ? 'yesterday' : period.filterKey === 'wiki' ? 'week' : period.filterKey === 'mwezi' ? 'month' : 'today');
+      const textResponse = ResponseGenerator.generate('REPORT_BUSINESS', bizData, currency, user?.name);
+      return (
+        <div className="flex flex-col gap-3 text-inherit">
+          <div className="prose prose-slate prose-sm max-w-none">
+            {formatResponseText(textResponse)}
+          </div>
         </div>
       );
     }
@@ -1364,6 +1771,208 @@ export default function MshauriChat() {
   const processStrategicQuery = (query: string): string => {
     const text = query.toLowerCase().trim();
     
+    // 1. Overall Shop Health Auditing
+    if (text.match(/hali\s+ya\s+duka|hali.*duka|shop\s+okay|business\s+okay|am\s+i\s+doing|niko\s+sawa|kuna\s+shida|afya\s+ya\s+duka|kagua\s+duka|afya\s+ya\s+biashara/i)) {
+      const health = AdvancedAnalytics.getStoreHealthScore(products || [], sales || [], expenses || []);
+      let analysis = `### 🏥 tathmini ya afya na utendaji wa duka letu\n`;
+      analysis += `Habari Boss ${user?.name || ''}, nimefanya ukaguzi wa kina (Multi-Point Health Audit) wa mifumo ya biashara yako leo kulingana na data za sasa:\n\n`;
+      analysis += `**Alama ya Afya ya Duka (Store Health Score):**\n`;
+      analysis += `> **Alama:** **${health.score}/100** | **Hali:** **${health.badge}**\n\n`;
+      analysis += `**Matokeo ya Ukaguzi wa Kila Sehemu (Audit Checklist):**\n`;
+      health.auditPoints.forEach(p => {
+        const icon = p.status === 'success' ? '✅' : p.status === 'warn' ? '⚠️' : '🚨';
+        analysis += `- **${icon} ${p.desc}**\n  *Ushauri:* ${p.advice}\n\n`;
+      });
+      analysis += `\n*Siri ya mafanikio ya duka hisi ni kufanyia kazi changamoto moja baada ya nyingine. Nakushauri uanze kurekebisha changamoto zenye icon za 🚨 au ⚠️ mara moja bosi!*`;
+      return analysis;
+    }
+
+    // 2. Hourly, sub-day, daily averages and weekdays distribution
+    if (text.match(/asubuhi|morning|noon|mchana|jioni|evening|muda.*mauzo|peak\s+hour|peak.*saa|average\s+daily|daily\s+average|wastani/i)) {
+      const temporal = AdvancedAnalytics.getHourlyAndWeeklyPerformance(sales || [], currency);
+      let analysis = `### ⏰ uchambuzi wa muda na kasi ya mauzo (temporal trends)\n`;
+      analysis += `Habari Boss ${user?.name || ''}, nimepiga hesabu ya mzunguko wa mauzo ya duka lako kwa masaa na siku tofauti za wiki:\n\n`;
+      
+      analysis += `**Muda Unaouza Zaidi (Peak Hours):**\n`;
+      analysis += `- **Saa ya Dhahabu (Peak Hour):** **Saa ${temporal.peakHour}:00** lipata mauzo mengi zaidi ya takriban **${formatCurrency(temporal.peakRevenue, currency)}** katika historia ya saa husika.\n`;
+      analysis += `- **Mauzo ya Asubuhi ya Leo (Kabla ya saa 6 mchana):** **${formatCurrency(temporal.morningEarningsToday, currency)}** yaliyoingia leo asubuhi.\n\n`;
+
+      analysis += `**Mzunguko wa Wiki na Siku (Weekday Leaderboard):**\n`;
+      analysis += `- **Siku Inayofanya Vizuri Zaidi:** kila siku ya **${temporal.bestDay}** ambapo biashara imepata jumla ya mauzo ya **${formatCurrency(temporal.bestDayRevenue, currency)}** kwa ujumla.\n`;
+      analysis += `- **Siku ya Mauzo ya Chini Zaidi:** kila siku ya **${temporal.worstDay}** huku ikiwa imeingiza **${formatCurrency(temporal.worstDayRevenue, currency)}** (Ni wakati mzuri wa kuanzisha kampeni ndogo au ofa ili kuibua mauzo siku hii!).\n\n`;
+
+      analysis += `**Wastani wa Kila Siku (Daily Averages):**\n`;
+      analysis += `- **Wastani wa Mauzo kwa Siku:** **${formatCurrency(temporal.avgDailySales, currency)}**.\n`;
+      analysis += `- **Wastani wa Kikapu kwa Muamala (Basket Size):** **${formatCurrency(temporal.avgSaleAmount, currency)}** kwa kila mteja anayekamilisha malipo duka letu.\n\n`;
+
+      analysis += `**Mchanganuo wa Wiki Moja (Weekday Distribution Table):**\n`;
+      temporal.weekdayDistribution.forEach(day => {
+        analysis += `- **${day.name}:** ${formatCurrency(day.revenue, currency)} (${day.count} mauzo)\n`;
+      });
+      
+      analysis += `\n*Ushauri:* Panga rasilimali na wafanyakazi kuendana na saa ya kilele (Peak Hours) ili kuhakikisha wateja wanahudumiwa haraka na kwa usahihi wa hali ya juu kabisa!`;
+      return analysis;
+    }
+
+    // 3. Customer behavior loyalty & debtor lists
+    if (text.match(/mteja|wateja|debtor|loyalty|customer|nani\s+anadaiwa|wadaiwa|deni|sugu/i)) {
+      const cust = AdvancedAnalytics.getCustomerAnalytics(sales || [], saleItems || []);
+      let analysis = `### 👥 ripoti ya kujiimarisha na wateja wetu wa duka\n`;
+      analysis += `Habari Boss ${user?.name || ''}, nimechambua tabia na mienendo ya wateja duka letu ili kukupa uelewa wa nani anayesaidia biashara kukua:\n\n`;
+
+      if (cust.topCustomers.length > 0) {
+        analysis += `**Wafalme wa Duka (Top 5 Spenders):**\n`;
+        cust.topCustomers.slice(0, 5).forEach((c, i) => {
+          analysis += `${i+1}. **${c.name}** - Jumla ya fedha aliyoleta: **${formatCurrency(c.totalSpent, currency)}** (Kipindi cha kufanya fursa: mara ${c.visitCount})\n`;
+        });
+        analysis += `\n`;
+      }
+
+      if (cust.potentialChurn.length > 0) {
+        analysis += `**🚨 Tahadhari: Wateja Waliolala (Potential Churn):**\n`;
+        analysis += `Wafuatao ni wateja wetu wazuri ambao hawajarudi katika siku 30 zilizopita:\n`;
+        cust.potentialChurn.slice(0, 4).forEach(c => {
+          analysis += `- **${c.name}** (Hajafanya ununuzi kwa zaidi ya siku **${c.daysInactive}**! Inashauriwa kuwapigia simu au kuwatumia ujumbe kuuliza kama kuna bidhaa mbadala wanayovutiwa nayo).\n`;
+        });
+        analysis += `\n`;
+      }
+
+      if (cust.debtors.length > 0) {
+        analysis += `**💸 Wadaiwa Wetu (Debtors):**\n`;
+        cust.debtors.slice(0, 5).forEach((c, i) => {
+          analysis += `${i+1}. **${c.name}** - Ana deni la **${formatCurrency(c.debtAmount, currency)}** (Hajamaliza deni hili, mara ya mwisho amerekodiwa siku ${c.daysInactive} zilizopita).\n`;
+        });
+        analysis += `\n`;
+      }
+
+      if (cust.popularPairs.length > 0) {
+        analysis += `**🛒 Uchambuzi wa Kikapu Pamoja (Complementary Products):**\n`;
+        analysis += `Wateja wako wanapenda kununua bidhaa hizi pamoja katika muamala mmoja:\n`;
+        cust.popularPairs.forEach((pairObj, i) => {
+          analysis += `- ${i+1}. **${pairObj.pair}** (Zimenunuliwa pamoja mara **${pairObj.count}**)\n`;
+        });
+        analysis += `*Ushauri wa Mpangilio:* Ziweke bidhaa hizi karibu-karibu ila wateja wazione kwa pamoja kwa urahisi, au watengenezee ofa ya pamoja!\n\n`;
+      } else {
+        analysis += `*Uchambuzi wa Kikapu:* Hakuna bidhaa zilizorekodiwa kununuliwa pamoja bado mwezi huu.\n\n`;
+      }
+
+      analysis += `*Ushauri Mkuu:* Jenga tabia ya kurekodi majina ya wateja wanunuao kwa mikopo au kwa jumla ili kuendelea kuimarisha utambuzi huu na kupanga mikakati ya uhifadhi (retention)!`;
+      return analysis;
+    }
+
+    // 4. Strategic Investment opportunities & ROI Restocking
+    if (text.match(/wekeza|tangaza|promote|roi|nunua\s+nini|fursa/i)) {
+      const strategy = AdvancedAnalytics.getInvestmentAndPromoStrategy(products || [], saleItems || []);
+      let analysis = `### 🚀 mchanganuo wa mianya ya uwekezaji na matangazo duka letu\n`;
+      analysis += `Habari Boss ${user?.name || ''}, nimepima kila bidhaa kwa kuangalia faida inayochangia direct (profit contribution) pamoja na kasi ya uuzaji ili uweze kuona wapi pa kuweka nguvu zako:\n\n`;
+
+      if (strategy.investCandidates.length > 0) {
+        analysis += `**📈 1. Bidhaa za Uwekezaji wa Haraka (High Profit & High Velocity):**\n`;
+        analysis += `Bidhaa hizi huchangia faida kubwa zaidi kwa sababu zinateleza haraka. Wekeza mtaji mkubwa wa bulk buying hapa ili kupata faida ya bei ya jumla:\n`;
+        strategy.investCandidates.forEach((p, i) => {
+          analysis += `${i+1}. **${p.name}**\n   - Jumla ya unit zilizouzwa: **${p.totalUnitsSold}** pcs\n   - Thamani ya Faida niliyopata: **${formatCurrency(p.profitContribution, currency)}**\n   - Margin ya Faida ya Bidhaa: **${p.marginPct.toFixed(1)}%**\n`;
+        });
+        analysis += `\n`;
+      }
+
+      if (strategy.promoteCandidates.length > 0) {
+        analysis += `**📢 2. Hazina Zilizofichwa (High Margin but Low Volume - Promote/Advertise):**\n`;
+        analysis += `Bidhaa hizi zina faida nzuri sana kwa kila unit lakini wateja hawazinunui kwa wingi. Fanya harakati za kuzitangaza, kuziweka sehemu ya wazi au kuhimiza wahudumu wazizungumzie:\n`;
+        strategy.promoteCandidates.forEach((p, i) => {
+          analysis += `${i+1}. **${p.name}**\n   - Bei ya Kuuzia: **${formatCurrency(p.sell_price, currency)}** (Margin: **${formatCurrency(p.margin, currency)}** au **${p.marginPct.toFixed(1)}%**)\n   - Units zilizouzwa hivi karibuni: **${p.totalUnitsSold}** pcs pekee\n`;
+        });
+        analysis += `\n`;
+      }
+
+      analysis += `*Mkakati wa Leo:* Anza kwa kuhakikisha bidhaa za kundi la kwanza zimejaa kwenye stoo na hazipungui ili kulinda msingi thabiti wa duka lako. Kisha washawishi wahudumu wa duka watoe ofa kidogo kwenye bidhaa za kundi la pili ili kukomboa mtaji kibiashara!`;
+      return analysis;
+    }
+
+    // 5. Product margins, pricing, markups and profitability
+    if (text.match(/faida\s+ya\s+bidhaa|faida.*nyepesi|margin|asilimia|net\s+profit\s+margin|profitability/i)) {
+      const fin = AdvancedAnalytics.getFinancialHealth(sales || [], expenses || []);
+      const intellectual = AdvancedAnalytics.getProductIntelligence(products || [], sales || [], saleItems || []);
+      
+      let analysis = `### 📊 tathmini ya viwango vya faida na margin duka letu\n`;
+      analysis += `Habari Boss ${user?.name || ''}, hapa kuna mchanganuo wa kina wa kiwango cha faida na tija ya bidhaa zetu:\n\n`;
+
+      analysis += `**Utendaji Halisi vya Kifedha (Profitability KPIs):**\n`;
+      analysis += `- **Jumla ya Faida ya Jumla (Gross Profit):** **${formatCurrency(fin.totalProfit, currency)}**\n`;
+      analysis += `- **Faida Halisi Baada ya Matumizi (Net Profit):** **${formatCurrency(fin.netProfit, currency)}**\n`;
+      analysis += `- **Net Profit Margin:** **${fin.netProfitMarginPct.toFixed(1)}%** (Kiwango salama ni zaidi ya 15%).\n\n`;
+
+      analysis += `**Hali ya Tija ya Bidhaa:**\n`;
+      if (intellectual.negativeMargins.length > 0) {
+        analysis += `**🚨 Alamu ya hasara ya bei (Zero or Negative Margin):**\n`;
+        analysis += `Kuna bidhaa zifuatazo zinazouzwa kwa hasara au pasipo faida kabisa kulinganisha bei ya kununulia:\n`;
+        intellectual.negativeMargins.forEach(p => {
+          analysis += `- **${p.name}** (Bei ya kununulia: ${formatCurrency(p.buy_price, currency)} | Bei ya Kuuzia: ${formatCurrency(p.sell_price, currency)}).\n`;
+        });
+        analysis += `*Ushauri:* Badilisha bei za kuuzia za bidhaa hizi mara moja bosi!\n\n`;
+      } else {
+        analysis += `- **Ukaguzi wa Bei:** Safi kabisa! Bidhaa zako zote zimewekewa bei za kuuzia zilizo juu ya bei ya kununulia (Kila moja inaleta faida).\n\n`;
+      }
+
+      analysis += `**Mbinu za Kuongeza Margin:**\n`;
+      analysis += `1. **Ondoa Ununuzi mdogo mdogo:** Jaribu kununua mzigo kwa bei ya jumla kubwa ili kupunguza bei ya kununulia.\n`;
+      analysis += `2. **Acha kutoa mapunguzo holela:** Wafunze wahudumu kutumia bei sahihi zilizosajiliwa kuzuia upotevu wa peni za faida duka letu.`;
+      return analysis;
+    }
+
+    // 6. Overstocked items
+    if (text.match(/overstock|mzigo\s+mwingi|baki\s+nyingi|stoo\s+nyingi|sitting/i)) {
+      const intell = AdvancedAnalytics.getProductIntelligence(products || [], sales || [], saleItems || []);
+      let analysis = `### 📦 uchambuzi wa bidhaa zilizozidi kiwango duka (overstocked items)\n`;
+      analysis += `Habari Boss ${user?.name || ''}, nimechunguza bidhaa zenye mrundikano mkubwa katika stoo yako, ambazo zimefunga mtaji wako badala ya kusaidia liquidity ya duka:\n\n`;
+
+      analysis += `- **Idadi ya Bidhaa zilizolundikana:** **${intell.overstocked.length}** bidhaa tofauti hivi sasa.\n\n`;
+      
+      if (intell.overstocked.length > 0) {
+        analysis += `**Orodha ya Bidhaa zenye Mrundikano Mkubwa zaidi (Overstock List):**\n`;
+        intell.overstocked.slice(0, 5).forEach((p, i) => {
+          const capitalLocked = p.buy_price * p.stock;
+          analysis += `${i+1}. **${p.name}**\n   - Units zilizopo: **${p.stock}** ${p.unit || 'pcs'}\n   - Kiwango Salama cha Chini: **${p.min_stock}** pcs\n   - Mtaji uliofungwa hapa: **${formatCurrency(capitalLocked, currency)}**\n`;
+        });
+        analysis += `\n`;
+      } else {
+        analysis += `*Hongera sana! Hakuna bidhaa yoyote iliyorekodi mrundikano wa juu kiasi cha kukosesha ukwasi. Stock zako zipo na uwiano mzuri mno.*\n\n`;
+      }
+
+      analysis += `**Ushauri wa Kushusha Overstock:**\n`;
+      analysis += `1. **Sitisha ununuzi mpya wetu:** Usiongeze mzigo wa bidhaa hizi mpaka sasa unit zilizopo zishuke kufikia kiwango salama.\n`;
+      analysis += `2. **Tengeneza Ofa za Pamoja (Combinatory bundles):** Toa punguzo dogo ila kuzisogeza kwa wateja haraka kabla hazijachakaa au kuharibika stoo.`;
+      return analysis;
+    }
+
+    // 7. Comparative Product VS Analysis
+    if (text.includes('vs') || text.includes('dhidi ya') || text.includes('linganisha')) {
+      const compRes = AdvancedAnalytics.performComparison(query, products || [], sales || [], saleItems || [], currency);
+      if (compRes.found && compRes.type === 'product_comparison') {
+        const p1 = compRes.p1!;
+        const p2 = compRes.p2!;
+        let analysis = `### 🆚 kulinganisha bidhaa: ${p1.name} dhidi ya ${p2.name}\n`;
+        analysis += `Habari Boss ${user?.name || ''}, hapa kuna kulinganisha kwa kina wa mzigo wote wetu kulingana na mauzo halisi:\n\n`;
+        
+        analysis += `| Kipimo | ${p1.name} | ${p2.name} |\n`;
+        analysis += `|---|---|---|\n`;
+        analysis += `| **Bei ya Kuuzia** | ${formatCurrency(p1.price, currency)} | ${formatCurrency(p2.price, currency)} |\n`;
+        analysis += `| **Margin ya Unit** | ${formatCurrency(p1.margin, currency)} | ${formatCurrency(p2.margin, currency)} |\n`;
+        analysis += `| **Vitengo Vilivyouzwa** | **${p1.qty}** pcs | **${p2.qty}** pcs |\n`;
+        analysis += `| **Jumla ya Mapato** | **${formatCurrency(p1.revenue, currency)}** | **${formatCurrency(p2.revenue, currency)}** |\n\n`;
+
+        if (p1.qty > p2.qty) {
+          analysis += `👉 **${p1.name}** inafanya vizuri kwa kuwa imeuzwa kwa asilimia **${p2.qty > 0 ? (((p1.qty - p2.qty) / p2.qty) * 100).toFixed(0) : 100}%** zaidi kuliko **${p2.name}**!\n\n`;
+        } else if (p2.qty > p1.qty) {
+          analysis += `👉 **${p2.name}** inafanya vizuri kwa kuwa imeuzwa kwa asilimia **${p1.qty > 0 ? (((p2.qty - p1.qty) / p1.qty) * 100).toFixed(0) : 100}%** zaidi kuliko **${p1.name}**!\n\n`;
+        } else {
+          analysis += `👉 Bidhaa zote mbili zina mauzo sawa kabisa ya **${p1.qty}** vitengo!\n\n`;
+        }
+
+        analysis += `*Ushauri Mkuu:* Una uwezo wa kuongeza margin ya ile bidhaa inayotoka zaidi ya pili, au chagua ile yenye faida kubwa zaidi kuwa kipaumbele cha kuitangaza!`;
+        return analysis;
+      }
+    }
+
     // Compute current live state metrics
     const totalProducts = products.length;
     const lowStock = products.filter(p => p.stock <= p.min_stock);
@@ -1842,43 +2451,43 @@ export default function MshauriChat() {
 
       const scoreWeight = (chatAnomalies.length * 2) + (cartVoidsCount * 1.5) + (salesDeletesCount * 3);
       
-      let riskLevel = 'SALAMA (Low Risk)';
+      let riskLevel = 'SALAMA ✅';
       if (scoreWeight >= 15) {
-        riskLevel = 'HATARI KUBWA (High Risk) 🚨';
+        riskLevel = 'HATARI KUBWA 🚨';
       } else if (scoreWeight > 4) {
-        riskLevel = 'TAHADHARI (Moderate Risk) ⚠️';
+        riskLevel = 'TAHADHARI/MASHAKA ⚠️';
       }
 
-      let analysis = `### ripoti ya ulinzi na tathmini ya mianya duka letu (security audit)\n`;
-      analysis += `Habari Boss ` + (user?.name || '') + `, nimefanya ukaguzi wa mienendo duka letu ili kubainisha ikiwa kuna mianya ya upotevu wa fedha:\n\n`;
+      let analysis = `### ripoti ya tathmini na usalama wa duka (security audit)\n`;
+      analysis += `Habari Boss ` + (user?.name || '') + `, nimefanya ukaguzi wa mabadiliko na mienendo duka mbalimbali ili kubaini ikiwa kuna mianya ya upotevu wa fedha:\n\n`;
 
-      analysis += `**Hali ya Usalama (Audit Score):**\n`;
-      analysis += `- **Kiwango cha Hatari:** **${riskLevel}**.\n`;
-      analysis += `- **Leo:** Miamala yiliyofutwa: **${todayDeletes}** | Voids: **${todayVoids}**.\n`;
-      analysis += `- **Jumla (Logs 200 zilizopita):** Anomalies: **${chatAnomalies.length}** | Voids: **${cartVoidsCount}** | Sales Deleted: **${salesDeletesCount}**.\n\n`;
+      analysis += `**Kiwango cha Usalama (Mabadiliko ya Mfumo):**\n`;
+      analysis += `- **Hali ya Usalama wetu:** **${riskLevel}**.\n`;
+      analysis += `- **Leo:** Miamala yiliyofutwa/kurejeshwa: **${todayDeletes}** | Kufuta bidhaa kikapuni: **${todayVoids}**.\n`;
+      analysis += `- **Jumla (Matukio 200 yaliyopita):** Mabadiliko yenye mashaka: **${chatAnomalies.length}** | Kufuta kikapu: **${cartVoidsCount}** | Mauzo yaliyofutwa: **${salesDeletesCount}**.\n\n`;
 
-      analysis += `**Tahadhari Zilizobainishwa:**\n`;
+      analysis += `**Viashiria vya Mabadiliko Yaliyobainishwa:**\n`;
       
       let flagCount = 0;
       if (todayDeletes > 0 || todayVoids > 0) {
         flagCount++;
-        analysis += `${flagCount}. **Matukio ya Leo (Real-time Alert):** Kuna mabadiliko ya miamala yaliyofanyika leo. Hakikisha yalikuwa na idhini yako.\n`;
+        analysis += `${flagCount}. **Mabadiliko ya Leo (Real-time Alert):** Kuna mabadiliko ya miamala/kikapu yaliyofanyika leo. Hakikisha yalikuwa na idhini yako.\n`;
       }
       
       if (cartVoidsCount > 5) {
         flagCount++;
-        analysis += `${flagCount}. **Wizi kwa Njia ya Voids:** Idadi kubwa ya kufuta bidhaa (${cartVoidsCount}) ni kiashiria cha mhudumu kuchukua hela kwa wateja kisha kufuta kikapu.\n`;
+        analysis += `${flagCount}. **Kufuta bidhaa kwenye kikapu mara kwa mara:** Idadi kubwa ya kufuta bidhaa kabla ya malipo (${cartVoidsCount}) ni kiashiria kinachohitaji kufuatiliwa kwa karibu ili kuzuia mhudumu kuchukua pesa za mauzo.\n`;
       }
 
       if (flagCount === 0) {
-        analysis += `*Hongera sana! Hakuna viashiria vya shaka vilivyobainishwa duka letu hivi karibuni. Wahudumu wako wanaonyesha uadilifu mzuri sana.*\n\n`;
+        analysis += `*Hongera sana! Hakuna viashiria vyovyote vya mashaka duka letu hivi karibuni. Wahudumu wako wanaonyesha uaminifu mzuri sana.*\n\n`;
       } else {
         analysis += `\n`;
       }
 
-      analysis += `**Mapendekezo ya Ulinzi:**\n`;
-      analysis += `1. **Zuia Ufutaji (Restrict Voids):** Wazuie wafanyakazi wasiwe na uwezo wa kufuta mauzo bila password yako.\n`;
-      analysis += `2. **Audit Kila Wiki:** Fungua ukurasa wa **Audit Logs** mara moja kwa wiki kulinganisha stock halisi na mfumo.`;
+      analysis += `**Mapendekezo ya Kuboresha Usalama:**\n`;
+      analysis += `1. **Zuia Ufutaji wa Kikapu:** Wazuie au dhibiti uwezo wa wafanyakazi kufuta mauzo/bidhaa zilizopo kikapuni bila nenosiri lako.\n`;
+      analysis += `2. **Pitia Mabadiliko Kila Wiki:** Fungua ukurasa wa **Ripoti ya Mabadiliko duka** mara moja kwa wiki kulinganisha stock halisi na mfumo.`;
 
       return analysis;
     }
@@ -1944,17 +2553,20 @@ export default function MshauriChat() {
     setMessages(prev => [...prev, userMsg]);
     const cleanText = text.toLowerCase().trim();
 
-    // Detect strategic queries or forecasting specifically, rather than routing general unmatched questions here
-    const isStrategic = !!cleanText.match(/mbona.*hasara|hasara|kusuasua|kupoteza.*pesa|loss|losing|nifanye nini|kukuza|grow|kuongeza|boost|mapendekezo|mwelekeo|forecast|projection|road\s*map|kesho|tomorrow|siku|days|wiki|week|mwezi|month|miezi|mwaka|year|miaka|ijayo|lala|haitembei|zisizouza|dead\s*stock|slow\s*stock|lost\s*revenue|poteza\s*mauzo|mauzo\s*yanayopotea|mapato\s*yanayopotea|purchase\s*budget|restock|agiza\s*mpya|kununua\s*mzigo|bajeti|ununuzi\s*ujao|ulinzi|salama|wizi|wizi\s*wa\s*hela|anomalies|upotevu|mianya/i);
+    // Find previous intent from message history (Stateful Context Tracking)
+    let previousIntent: any = undefined;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].intent && messages[i].intent !== 'UNKNOWN') {
+        previousIntent = messages[i].intent;
+        break;
+      }
+    }
 
-    // Detect sync / usawazishaji queries with versatile keywords/sentence constructs
-    const isSync = !!cleanText.match(/sync|usawazishaji|usawazisha|isink|sink|stuck|feli/i) || 
-                   (!!cleanText.match(/haionekani|hazionekani|sizioni|hazifiki|hazimfikii|hazitokei/i) && 
-                    !!cleanText.match(/mauzo|data|nikiuza|nauza|taarifa|bidhaa|pc|computer|desktop|simu/i)) ||
-                   (!!cleanText.match(/akiuza|anauza/i) && !!cleanText.match(/sioni|hazinifikii|hazifiki/i)) ||
-                   !!cleanText.match(/mbona.*sioni|hazinifikii|hazimfikii|hazifiki/i);
+    // --- LAYER 1: INTENT CLASSIFICATION ---
+    const intentRes = IntentEngine.classify(cleanText, previousIntent);
+    const intent = intentRes.intent;
 
-    // Find if any specific employee is mentioned by name in the query
+    // Detect specialized UI results
     const foundEmployee = users.find(u => {
       if (!u.name) return false;
       const uNameParts = u.name.toLowerCase().split(/\s+/).filter(part => part.length >= 2);
@@ -1965,8 +2577,9 @@ export default function MshauriChat() {
       });
     });
 
-    const isWafanyakaziGeneral = !!cleanText.match(/ripoti ya wafanyakazi|ripoti za wafanyakazi|tabia za wafanyakazi|employee reports|employee breakdown|ripoti ya mfanyakazi|mchanganuo wa wafanyakazi|habari za wafanyakazi|mambo ya wafanyakazi|habari ya wafanyakazi/i);
-    const isSingleEmployeeReport = !!foundEmployee;
+    const isWafanyakaziGeneral = intent === 'REPORT_EMPLOYEE' && !foundEmployee;
+    const isSingleEmployeeReport = intent === 'REPORT_EMPLOYEE' && !!foundEmployee;
+    const isSync = intent === 'ACTION_SYNC';
 
     let initialPeriod: 'week' | 'month' | 'months6' = 'week';
     if (cleanText.match(/mwezi|siku 30|30 days/i)) {
@@ -1975,47 +2588,23 @@ export default function MshauriChat() {
       initialPeriod = 'months6';
     }
 
-    let resolvedIntent: 'sales' | 'expenses' | 'debts' | 'stock' | 'behavior' | 'bestselling' | 'unknown' = 'unknown';
-
-    if (cleanText.match(/bestsell|best sell|inayouzwa sana|zinazouza sana|maarufu/i) || cleanText.match(/bidhaa.*sana/i) || cleanText.match(/popular/i) || cleanText.match(/top/i)) {
-      resolvedIntent = 'bestselling';
-    } else if (cleanText.match(/matumizi|expense|gharama|cost|pesa imetoka/i)) {
-      resolvedIntent = 'expenses';
-    } else if (cleanText.match(/mauzo|sales|revenue|faida|profit|mapato/i)) {
-      resolvedIntent = 'sales';
-    } else if (cleanText.match(/deni|madeni|mikopo|debt|credit|adai|kopa/i)) {
-      resolvedIntent = 'debts';
-    } else if (cleanText.match(/stock|bidhaa|product|mzigo|zimeisha/i)) {
-      resolvedIntent = 'stock';
-    } else if (cleanText.match(/tabia|behavior|wizi|iba|anomal|wafanyakazi|employee|tishio|futa|shaka/i)) {
-      resolvedIntent = 'behavior';
-    } else {
-      const isFollowUp = cleanText.match(/vipi|na |vipi kuhusu|how about|what about|what of|and |jana|hujui|je /i) || cleanText.trim().endsWith('?');
-      if (isFollowUp && lastIntent !== 'unknown') {
-        resolvedIntent = lastIntent;
-      }
-    }
-
-    if (resolvedIntent !== 'unknown') {
-      setLastIntent(resolvedIntent);
-    }
-
     setIsTyping(true);
 
-    const isHardQuery = !isSync && !isWafanyakaziGeneral && !isSingleEmployeeReport && !isStrategic && resolvedIntent === 'unknown';
+    const isHardQuery = intent === 'UNKNOWN';
     const isGeminiEnabledAndFound = isAiEnabled && !!getGeminiClient();
     const isUnresolvedQuery = isHardQuery && !isGeminiEnabledAndFound;
 
-    // Save user prompt to IndexedDB & trigger synchronization
-    await saveMessageToDb(userMsgId, 'user', text, 'text', {}, isUnresolvedQuery);
+    // Save user prompt to IndexedDB
+    await saveMessageToDb(userMsgId, 'user', text, 'text', { intent }, isUnresolvedQuery);
 
-    // Track feature usage
+    // Track usage
     TelemetryService.trackAssistantQuery(
       isAiEnabled && isHardQuery ? 'custom_ai' : 'pre_calculated_intent',
-      resolvedIntent
+      intent
     );
 
     if (isAiEnabled && isHardQuery) {
+      // ... existing Gemini logic ...
       try {
         const client = getGeminiClient();
         if (!client) {
@@ -2035,41 +2624,33 @@ export default function MshauriChat() {
             };
             setMessages(prev => [...prev, botResponse]);
             setIsTyping(false);
-
             await saveMessageToDb(botMsgId, 'bot', '🚨 Modi ya AI Imewashwa lakini ufunguo haujapatikana!', 'text', {});
           }, 600);
           return;
         }
 
-        const totalProducts = products.length;
-        const lowStockProducts = products.filter(p => p.stock <= p.min_stock).slice(0, 15).map(p => `${p.name} (Baki: ${p.stock}, Min: ${p.min_stock})`).join(", ");
-        const totalRevenue = sales.filter(s => s.isDeleted !== 1).reduce((acc, s) => acc + s.total_amount, 0);
-        const totalProfits = sales.filter(s => s.isDeleted !== 1).reduce((acc, s) => acc + (s.total_profit || 0), 0);
-        const totalExp = expenses.filter(e => e.isDeleted !== 1).reduce((acc, e) => acc + e.amount, 0);
-        const activeDebtsTotal = sales
+        const totalProductsCount = products.length;
+        const lowStockProductsText = products.filter(p => p.stock <= p.min_stock).slice(0, 15).map(p => `${p.name} (Baki: ${p.stock}, Min: ${p.min_stock})`).join(", ");
+        const totalRevenueVal = sales.filter(s => s.isDeleted !== 1).reduce((acc, s) => acc + s.total_amount, 0);
+        const totalProfitsVal = sales.filter(s => s.isDeleted !== 1).reduce((acc, s) => acc + (s.total_profit || 0), 0);
+        const totalExpVal = expenses.filter(e => e.isDeleted !== 1).reduce((acc, e) => acc + e.amount, 0);
+        const activeDebtsTotalVal = sales
           .filter(s => s.payment_method === 'credit' && s.status !== 'completed' && s.isDeleted !== 1)
           .reduce((acc, s) => acc + s.total_amount, 0);
 
         const shopContext = `
 Wewe ni Mshauri wa Biashara mwenye ujuzi wa hali ya juu na msaidizi wa kipekee (virtual business advisor) anayeitwa "Venics Assistant".
-Umechambua takwimu zifuatazo halisi za duka hivi sasa kutoka kwenye mfumo wa duka:
-- Duka linaitwa: ${settings?.shopName || 'duka letu'}
-- Sarafu inayotumika: ${currency}
-- Jumla ya bidhaa tofauti zilizoorodheshwa duka: ${totalProducts}
-- Bidhaa zinazoisha na kuhitaji kuagizwa haraka (low stock): [${lowStockProducts || 'Hakuna'}]
-- Jumla ya mauzo yote ya duka hivi sasa: ${formatCurrency(totalRevenue, currency)}
-- Jumla ya faida iliyorekodiwa hivi sasa: ${formatCurrency(totalProfits, currency)}
-- Jumla ya madeni ya mikopo ambayo duka linawadai wateja: ${formatCurrency(activeDebtsTotal, currency)}
-- Jumla ya matumizi yote yaliyorekodiwa hivi sasa: ${formatCurrency(totalExp, currency)}
+Takwimu duka hivi sasa:
+- Duka: ${settings?.shopName || 'duka letu'} | Sarafu: ${currency}
+- Bidhaa: ${totalProductsCount} | Low Stock: [${lowStockProductsText || 'Hakuna'}]
+- Mauzo: ${formatCurrency(totalRevenueVal, currency)} | Faida: ${formatCurrency(totalProfitsVal, currency)}
+- Madeni: ${formatCurrency(activeDebtsTotalVal, currency)} | Matumizi: ${formatCurrency(totalExpVal, currency)}
 
-Maelekezo:
-1. Jibu swali la mteja (Ambaye ni Boss) kwa uungwana, utaalamu, na lugha yetu safi ya Kiswahili ya kibiashara.
-2. Jibu liwe fupi, lenye mwelekeo wa usaidizi wa kweli, lenye mpangilio mzuri wa kuonekana kwa kutumia aya au vigezo vyenye muundo thabiti wa kusomeka kwa urahisi (Swahili).
-3. Tumia habari hizi za duka kwa usahihi kabisa. Hakikisha maelezo yako ya kibiashara na kiuchambuzi yanaendana na takwimu hizi halisi! Jibu liwe kwenye mfumo wa maelezo ya kawaida na ushauri makini.
+Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
 `;
 
         const response = await client.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-2.0-flash",
           contents: text,
           config: {
             systemInstruction: shopContext,
@@ -2078,7 +2659,6 @@ Maelekezo:
         });
 
         const replyText = response.text || "Samahani Boss, nilipata hitilafu kidogo wakati wa kuchambua data yako halisi ya mifumo. Tafadhali jaribu tena.";
-
         const botMsgId = uuidv4();
         const botResponse: Message = {
           id: botMsgId,
@@ -2087,10 +2667,8 @@ Maelekezo:
           type: 'text',
           timestamp: new Date()
         };
-
         setMessages(prev => [...prev, botResponse]);
         setIsTyping(false);
-
         await saveMessageToDb(botMsgId, 'ai', replyText, 'text', {});
 
       } catch (err) {
@@ -2098,28 +2676,42 @@ Maelekezo:
         setTimeout(async () => {
           const botMsgId = uuidv4();
           const botResponseText = `Hitilafu ya Kiufundi: Nimeshindwa kuunganisha huduma ya AI hivi sasa. Tafadhali hakikisha kuwa funguo yako ya siri (VITE_MY_GEMINI_KEY) ni sahihi au una mtandao wa kutosha.`;
-          const botResponse: Message = {
-            id: botMsgId,
-            sender: 'bot',
-            text: botResponseText,
-            timestamp: new Date()
-          };
+          const botResponse: Message = { id: botMsgId, sender: 'bot', text: botResponseText, timestamp: new Date() };
           setMessages(prev => [...prev, botResponse]);
           setIsTyping(false);
-
           await saveMessageToDb(botMsgId, 'bot', botResponseText, 'text', {});
         }, 600);
       }
     } else {
-      // Simulate smart thinking delay
+      // --- LOCAL INTELLIGENCE LAYERS (2 & 3) ---
       setTimeout(async () => {
         let type: 'sync' | 'employee_general' | 'employee_single' | 'text' | 'react_node' = 'text';
         let botResponseText: string | React.ReactNode = '';
         let employeeId: string | undefined;
 
-        if (isSync) {
+        const kbMatch = KnowledgeBase.findBestMatch(cleanText);
+        const isHowToQuery = cleanText.startsWith('jinsi') || cleanText.startsWith('how') || cleanText.startsWith('namna') || cleanText.startsWith('nawezaje') || cleanText.includes('mbona') || cleanText.includes('msaada');
+        const isAdvancedStrategic = cleanText.match(/hali\s+ya\s+duka|hali.*duka|shop\s+okay|business\s+okay|am\s+i\s+doing|niko\s+sawa|kuna\s+shida|afya\s+ya\s+duka|kagua\s+duka|afya\s+ya\s+biashara|asubuhi|morning|noon|mchana|jioni|evening|muda.*mauzo|peak\s+hour|peak.*saa|average\s+daily|daily\s+average|wastani|mteja|wateja|debtor|loyalty|customer|nani\s+anadaiwa|wadaiwa|deni|sugu|wekeza|tangaza|promote|roi|nunua\s+nini|fursa|faida\s+ya\s+bidhaa|faida.*nyepesi|margin|asilimia|net\s+profit\s+margin|profitability|overstock|mzigo\s+mwingi|baki\s+nyingi|stoo\s+nyingi|sitting|dhidi ya/i) || ['REPORT_DEAD_STOCK', 'REPORT_FORECAST'].includes(intent) || cleanText.includes('hasara');
+
+        if (intent === 'ACTION_ADD_STAFF') {
+          type = 'react_node';
+          botResponseText = 'Sajili Mfanyakazi';
+        } else if (intent === 'ACTION_TOGGLE_FEATURES') {
+          type = 'react_node';
+          botResponseText = 'Udhibiti wa Vipengele';
+        } else if (isSync) {
           type = 'sync';
           botResponseText = 'Ukaguzi wa Usawazishaji';
+        } else if (isAdvancedStrategic) {
+          botResponseText = formatResponseText(processStrategicQuery(text));
+          type = 'react_node';
+        } else if (kbMatch && (isHowToQuery || !['REPORT_SALES', 'REPORT_EXPENSES', 'REPORT_STOCK', 'REPORT_DEBTS', 'REPORT_SECURITY', 'REPORT_COMPARISON', 'REPORT_EMPLOYEE', 'REPORT_BEST_SELLING', 'ACTION_ADD_STAFF', 'ACTION_TOGGLE_FEATURES'].includes(intent))) {
+          // Elite local knowledge base match covering specific duka FAQs
+          botResponseText = kbMatch.answer;
+          type = 'text';
+          if (kbMatch.action) {
+            (window as any).__lastMshauriAction = kbMatch.action;
+          }
         } else if (isWafanyakaziGeneral) {
           type = 'employee_general';
           botResponseText = 'Ripoti ya Wafanyakazi';
@@ -2127,22 +2719,53 @@ Maelekezo:
           type = 'employee_single';
           employeeId = foundEmployee.id;
           botResponseText = `Ripoti ya ${foundEmployee.name}`;
-        } else if (isStrategic) {
+        } else if (intent !== 'UNKNOWN' && intent !== 'GENERAL_HELP' && intent !== 'REPORT_DEAD_STOCK' && intent !== 'REPORT_FORECAST') {
+          // --- LAYER 2: BUSINESS LOGIC ---
+          let data: any = {};
+          if (intent === 'REPORT_SALES') {
+            data = BusinessLogic.getSalesReport(sales, expenses, intentRes.params.period);
+          } else if (intent === 'REPORT_EXPENSES') {
+            data = BusinessLogic.getSalesReport(sales, expenses, intentRes.params.period);
+          } else if (intent === 'REPORT_STOCK') {
+            data = BusinessLogic.getStockStatus(products);
+          } else if (intent === 'REPORT_DEBTS') {
+            data = BusinessLogic.getDebtsStatus(sales);
+          } else if (intent === 'REPORT_SECURITY') {
+            data = BusinessLogic.getSecurityStatus(auditLogs);
+          } else if (intent === 'REPORT_COMPARISON') {
+            data = BusinessLogic.getComparisonReport(sales, expenses, intentRes.params.comparePeriod);
+          } else if (intent === 'REPORT_BUSINESS') {
+            data = BusinessLogic.getBusinessSummary(sales, expenses, products, intentRes.params.period);
+          }
+
+          // --- LAYER 3: RESPONSE GENERATION ---
+          botResponseText = formatResponseText(ResponseGenerator.generate(intent, data, currency, user?.name));
+          type = 'react_node';
+        } else if (kbMatch) {
+          // Fallback KB match
+          botResponseText = kbMatch.answer;
+          type = 'text';
+          if (kbMatch.action) {
+            (window as any).__lastMshauriAction = kbMatch.action;
+          }
+        } else if (intent === 'REPORT_DEAD_STOCK' || intent === 'REPORT_FORECAST' || cleanText.includes('hasara')) {
+          // Existing strategic logic fallback
           const strategicReply = processStrategicQuery(text);
           botResponseText = formatResponseText(strategicReply);
           type = 'react_node';
         } else {
-          const standardReply = processQuery(text, resolvedIntent);
-          if (React.isValidElement(standardReply)) {
-            type = 'react_node';
-            botResponseText = standardReply;
-          } else {
-            type = 'text';
-            botResponseText = standardReply as string;
-          }
+          // General help or unknown
+          botResponseText = formatResponseText(ResponseGenerator.generate(intent, {}, currency, user?.name));
+          type = 'react_node';
         }
 
         const botMsgId = uuidv4();
+        const lastAction = (window as any).__lastMshauriAction;
+        const lastFollowUps = (window as any).__lastMshauriFollowUps || FollowUpEngine.getFollowUps(intent as any, undefined, isAiEnabled);
+        
+        (window as any).__lastMshauriAction = null;
+        (window as any).__lastMshauriFollowUps = null;
+
         const botResponse: Message = {
           id: botMsgId,
           sender: 'bot',
@@ -2150,13 +2773,12 @@ Maelekezo:
           type,
           employeeId,
           initialPeriod: isWafanyakaziGeneral ? initialPeriod : undefined,
-          intent: resolvedIntent,
+          intent: intent,
           query: cleanText,
           timestamp: new Date(),
-          action: (window as any).__lastMshauriAction
+          action: lastAction,
+          followUps: lastFollowUps
         };
-        const lastAction = (window as any).__lastMshauriAction;
-        (window as any).__lastMshauriAction = null;
         
         setMessages(prev => [...prev, botResponse]);
         setIsTyping(false);
@@ -2165,10 +2787,11 @@ Maelekezo:
           employeeId,
           initialPeriod: isWafanyakaziGeneral ? initialPeriod : undefined,
           action: lastAction,
-          intent: resolvedIntent,
+          followUps: lastFollowUps,
+          intent: intent,
           query: cleanText
         });
-      }, 600);
+      }, 700);
     }
   };
 
@@ -2227,20 +2850,10 @@ Maelekezo:
 
           {/* Messages Area */}
           <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50/20">
-            {!showHistory && (dbChats || []).length > 0 && messages.length < (dbChats || []).length && (
-              <div className="flex justify-center mb-4">
-                <button
-                  type="button"
-                  onClick={() => setShowHistory(true)}
-                  className="px-4 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full hover:bg-indigo-100 transition-colors shadow-sm flex items-center justify-center gap-1.5"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  Soma jumbe za nyuma
-                </button>
-              </div>
-            )}
-            {messages.map(msg => {
+            {messages.map((msg, msgIdx) => {
               const isUser = msg.sender === 'user';
+              const isOpeningMsg = msgIdx === 0 || msg.id === 'welcome_msg' || msg.id === 'empty_state_msg';
+              
               return (
                 <div 
                   key={msg.id} 
@@ -2275,6 +2888,25 @@ Maelekezo:
                         {/* Bot Response Bubble */}
                         <div className="bg-transparent text-slate-800 text-base sm:text-[17px] leading-relaxed relative w-full pr-2">
                           {(() => {
+                            if (msg.id === 'welcome_msg') {
+                              return (
+                                <div className="bg-indigo-50/50 border border-indigo-100/80 p-4.5 rounded-2xl relative shadow-sm text-slate-800 text-[15px] sm:text-[16px] leading-relaxed w-full">
+                                  <button 
+                                    onClick={handleDismissWelcome}
+                                    title="Usionyeshe tena"
+                                    className="absolute top-2.5 right-2.5 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100/55 transition-colors cursor-pointer"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                  <div className="flex items-start gap-2.5 pr-6">
+                                    <Sparkles className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                                    <div>
+                                      {msg.text}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
                             if (msg.type === 'sync') {
                               return <SyncDiagResponse />;
                             }
@@ -2307,7 +2939,10 @@ Maelekezo:
                             
                             if (msg.type === 'react_node') {
                               if (msg.intent && msg.query) {
-                                const isStrategic = !!msg.query.match(/mbona.*hasara|hasara|kusuasua|kupoteza.*pesa|loss|losing|nifanye nini|kukuza|grow|kuongeza|boost|mapendekezo|mwelekeo|forecast|projection|road\s*map|kesho|tomorrow|siku|days|wiki|week|mwezi|month|miezi|mwaka|year|miaka|ijayo|lala|haitembei|zisizouza|dead\s*stock|slow\s*stock|lost\s*revenue|poteza\s*mauzo|mauzo\s*yanayopotea|mapato\s*yanayopotea|purchase\s*budget|restock|agiza\s*mpya|kununua\s*mzigo|bajeti|ununuzi\s*ujao|ulinzi|salama|wizi|wizi\s*wa\s*hela|anomalies|upotevu|mianya/i);
+                                const cleanQ = msg.query.toLowerCase().trim();
+                                const isStrategic = cleanQ.match(/hali\s+ya\s+duka|hali.*duka|shop\s+okay|business\s+okay|am\s+i\s+doing|niko\s+sawa|kuna\s+shida|afya\s+ya\s+duka|kagua\s+duka|afya\s+ya\s+biashara|asubuhi|morning|noon|mchana|jioni|evening|muda.*mauzo|peak\s+hour|peak.*saa|average\s+daily|daily\s+average|wastani|mteja|wateja|debtor|loyalty|customer|nani\s+anadaiwa|wadaiwa|deni|sugu|wekeza|tangaza|promote|roi|nunua\s+nini|fursa|faida\s+ya\s+bidhaa|faida.*nyepesi|margin|asilimia|net\s+profit\s+margin|profitability|overstock|mzigo\s+mwingi|baki\s+nyingi|stoo\s+nyingi|sitting|dhidi ya/i) || 
+                                  ['REPORT_DEAD_STOCK', 'REPORT_FORECAST'].includes(msg.intent) || 
+                                  cleanQ.includes('hasara');
                                 if (isStrategic) {
                                   const strategicReply = processStrategicQuery(msg.query);
                                   return (
@@ -2352,7 +2987,7 @@ Maelekezo:
                                       className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
                                     >
                                       <span className="text-sm">🚀</span>
-                                      {msg.action.label}
+                                      {msg.action.label.startsWith('Fungua') || msg.action.label.startsWith('Angalia') ? msg.action.label : `Fungua ${msg.action.label}`}
                                     </button>
 
                                     {msg.isInsight && (
@@ -2366,6 +3001,23 @@ Maelekezo:
                                         <span>Nimeelewa / Funga</span>
                                       </button>
                                     )}
+                                  </div>
+                                )}
+
+                                {msg.followUps && msg.followUps.length > 0 && messages[messages.length - 1].id === msg.id && (
+                                  <div className={`flex ${isOpeningMsg ? 'flex-wrap' : 'flex-col'} gap-2 mt-4 pt-3 border-t border-slate-200/60`}>
+                                    <span className="w-full text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Maswali Mbadala:</span>
+                                    {msg.followUps.map((fu, idx) => (
+                                       <button
+                                         key={idx}
+                                         onClick={() => {
+                                           sendMessage(fu);
+                                          }}
+                                         className={`text-xs bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 hover:text-indigo-700 ${isOpeningMsg ? 'px-3 py-2 rounded-full' : 'px-3 py-2.5 rounded-xl text-left'} transition-all cursor-pointer font-medium shadow-sm hover:shadow active:scale-95 flex items-center group`}
+                                       >
+                                         <span className="opacity-70 mr-2 group-hover:translate-x-1 transition-transform">👉</span>{fu}
+                                       </button>
+                                    ))}
                                   </div>
                                 )}
                               </div>
@@ -2414,7 +3066,7 @@ Maelekezo:
 
           {/* Suggested strategic & data Chips */}
           <div className="px-4 pb-3 pt-1.5 flex overflow-x-auto gap-2 no-scrollbar shrink-0 bg-slate-50 border-t border-slate-100">
-            <button onClick={() => setInputValue('Ripoti ya mianya ya upotevu na ulinzi duka letu')} className="whitespace-nowrap text-xs bg-red-50 border border-red-100/50 text-red-700 px-3 py-1.5 rounded-full hover:bg-red-100 font-medium transition-all cursor-pointer">🚨 Mianya ya Upotevu & Ulinzi</button>
+            <button onClick={() => setInputValue('Ripoti ya upotevu na ulinzi duka letu')} className="whitespace-nowrap text-xs bg-red-50 border border-red-100/50 text-red-700 px-3 py-1.5 rounded-full hover:bg-red-100 font-medium transition-all cursor-pointer">🚨 Mianya ya Upotevu & Ulinzi</button>
             <button onClick={() => setInputValue('Nifanye nini kukuza mauzo yangu leo?')} className="whitespace-nowrap text-xs bg-emerald-50 border border-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full hover:bg-emerald-100 font-medium transition-all cursor-pointer">🚀 Kukuza Mauzo?</button>
             <button onClick={() => setInputValue('Makadirio ya bidhaa zilizolala na mtaji uliolala duka letu')} className="whitespace-nowrap text-xs bg-amber-50 border border-amber-100/50 text-amber-700 px-3 py-1.5 rounded-full hover:bg-amber-100 font-medium transition-all cursor-pointer">📦 Mtaji Uliolala (Dead Stock)</button>
             <button onClick={() => setInputValue('Makadirio ya mauzo yanayopotea kutokana na low stock')} className="whitespace-nowrap text-xs bg-rose-50 border border-rose-100/50 text-rose-700 px-3 py-1.5 rounded-full hover:bg-rose-100 font-medium transition-all cursor-pointer">💸 Mauzo Yanayopotea (Lost Revenue)</button>

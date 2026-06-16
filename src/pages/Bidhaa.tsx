@@ -192,7 +192,7 @@ export default function Bidhaa() {
               new_stock: product.stock,
               reduction: editingProduct.stock - product.stock,
               employee_name: user?.name || 'Mhudumu',
-              warning: `Amepunguza stock ya bidhaa ('Edit') kwa kiasi cha ${editingProduct.stock - product.stock} bila maelezo au kufanya mauzo.`
+              warning: `Amepunguza kiwango cha bidhaa hii stoo (${editingProduct.stock - product.stock} zilizopungua) bila kusajili mauzo ya kawaida kwenye mfumo.`
             });
           }
         }
@@ -295,12 +295,6 @@ export default function Bidhaa() {
               <span className={`text-xs font-medium px-2 py-1 rounded-md ${isLow ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                 Zilizopo: {validStock}
               </span>
-              {dynamicThreshold > 0 && (
-                <span className="ml-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center shrink-0" title="Kikomo cha mauzo ya siku 7">
-                  <TrendingUp className="w-3 h-3 mr-0.5 shrink-0" />
-                  AUTO: {dynamicThreshold} pcs
-                </span>
-              )}
               {canManageProducts && (
                 <button 
                   onClick={() => setStockModalProduct(product)}

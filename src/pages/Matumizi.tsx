@@ -129,7 +129,7 @@ export default function Matumizi() {
           amount: rawAmount,
           employee_name: user?.name || 'Mhudumu',
           description: expense.description,
-          warning: `Gharama kubwa ya namba kamili bila maelezo ya kutosha. (Imeandikwa: "${expense.description}")`
+          warning: `Gharama ya nambari kamili thubutu yenye maelezo mafupi mno yasiyojitosheleza duka. (Imeandikwa: "${expense.description}")`
         });
       }
 
@@ -142,7 +142,7 @@ export default function Matumizi() {
           amount: rawAmount,
           employee_name: user?.name || 'Mhudumu',
           description: expense.description,
-          warning: `Matumizi yameingizwa muda ambao maduka mengi yanafunga au yameshafunga (${currentHour}:00).`
+          warning: `Matumizi yamesajiliwa kwa ghafla karibu au baada ya masaa ya kufunga duka (saa ${currentHour}:00).`
         });
       }
 
@@ -163,7 +163,7 @@ export default function Matumizi() {
           employee_name: user?.name || 'Mhudumu',
           today_total: todayTotal,
           average_daily: Math.round(averageDaily),
-          warning: `Jumla ya matumizi ya leo (${formatCurrency(todayTotal, currency)}) ni makubwa sana ukilinganisha na wastani wa siku 30 zilizopita.`
+          warning: `Ongezeko kubwa na la ghafla la matumizi ya leo (${formatCurrency(todayTotal, currency)}) ukilinganisha na wastani wetu wa kawaida wa siku 30 zilizopita.`
         });
       }
 

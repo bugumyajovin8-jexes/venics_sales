@@ -81,7 +81,7 @@ interface PosState {
     isRead: boolean;
     timestamp: number;
   }) => void;
-  markNotificationRead: (id: string) => void;
+  dismissNotification: (id: string) => void;
   clearNotificationList: () => void;
 }
 
@@ -220,16 +220,32 @@ export const useStore = create<PosState>((set, get) => ({
     }
   })(),
   addNotificationList: (notification) => set((state) => {
-    // Avoid duplicates of same notification id
-    if (state.notificationsList.some(n => n.id === notification.id)) {
-      return state;
+    // Avoid duplicates of same notification id, but update content if it changed
+    const existingIndex = state.notificationsList.findIndex(n => n.id === notification.id);
+    let updated;
+    
+    if (existingIndex >= 0) {
+      const existing = state.notificationsList[existingIndex];
+      // Only update if something meaningful changed
+      if (existing.message === notification.message && existing.title === notification.title) {
+        return state;
+      }
+      updated = [...state.notificationsList];
+      // Keep isRead status so it doesn't keep popping as unread during continuous syncs unless we want to,
+      // but if the amount increased, we probably still want to show the latest text.
+      // We set isRead back to false since it's a new alert text basically, but to avoid flash during initial sync
+      // we only change the text and preserve isRead if the user already saw it. Let's just reset isRead to false 
+      // so they know it changed, BUT during rapid sync it changes fast, so they haven't read it anyway.
+      updated[existingIndex] = { ...notification, isRead: existing.isRead };
+    } else {
+      updated = [notification, ...state.notificationsList];
     }
-    const updated = [notification, ...state.notificationsList];
+    
     localStorage.setItem('pos_inapp_notifications', JSON.stringify(updated));
     return { notificationsList: updated };
   }),
-  markNotificationRead: (id) => set((state) => {
-    const updated = state.notificationsList.map(n => n.id === id ? { ...n, isRead: true } : n);
+  dismissNotification: (id) => set((state) => {
+    const updated = state.notificationsList.filter(n => n.id !== id);
     localStorage.setItem('pos_inapp_notifications', JSON.stringify(updated));
     return { notificationsList: updated };
   }),

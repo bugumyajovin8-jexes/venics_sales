@@ -144,7 +144,7 @@ export default function Madeni() {
           remaining_debt: remaining - amount,
           customer_name: sale.customer_name,
           employee_name: user?.name || 'Mhudumu',
-          warning: `Deni kubwa la ${formatCurrency(amount, currency)} limelipwa usiku wa manane (${currentHour}:00). Hii inatiliwa shaka kama mbinu ya kufuta deni hewa kimyakimya.`
+          warning: `Kurejesha au kumalizika kwa deni la ${formatCurrency(amount, currency)} kumesajiliwa usiku wa manane (saa ${currentHour}:00). Hii inahitaji ukaguzi kwani ni nje ya masaa ya kawaida ya biashara yetu.`
         });
       }
     }

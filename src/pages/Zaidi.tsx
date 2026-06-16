@@ -861,8 +861,8 @@ export default function Zaidi() {
                 <Wallet className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Malipo ya Mfumo</h2>
-                <p className="text-xs text-gray-500 font-medium">Usajili na leseni ya matumizi ya mfumo</p>
+                <h2 className="text-lg font-bold text-gray-900">Matumizi ya Mfumo</h2>
+                <p className="text-xs text-gray-500 font-medium">Ulipiaji wa huduma za Mfumo</p>
               </div>
             </div>
             
@@ -882,10 +882,66 @@ export default function Zaidi() {
                   <ul className="list-disc list-inside space-y-1.5 text-gray-700">
                     <li>Wasiliana na huduma kwa wateja kupitia namba <strong>0787979273</strong></li>
                     <li>Taja barua pepe yako (Email): <strong className="text-blue-700">{user?.email || 'Akaunti yako'}</strong></li>
-                    <li>Utapokea maelekezo ya kufanya malipo na kuwezeshwa leseni yako mara moja.</li>
+                    <li>Utapokea maelekezo ya kufanya malipo na kuwezeshwa huduma yako mara moja.</li>
                   </ul>
                 </div>
               </div>
+            </div>
+          </section>
+        )}
+
+        {/* Ruhusa Section - Employee only */}
+        {user?.role === 'employee' && (
+          <section className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <div className="bg-amber-100 p-2 rounded-xl mr-3">
+                  <ShieldCheck className="w-6 h-6 text-amber-600" />
+                </div>
+                <div className="text-left">
+                  <h2 className="text-lg font-semibold text-gray-800">Ruhusa</h2>
+                  <p className="text-xs text-gray-500">Usawazishaji wa ruhusa na vipengele</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl">
+              <p className="text-xs text-amber-800 mb-4 font-medium leading-relaxed">
+                Ikiwa huwezi kuona baadhi ya vipengele ambavyo bosi wako amekuruhusu, bofya kitufe hapa chini kusasisha ruhusa zako upesi kutoka kwenye seva.
+              </p>
+              <button 
+                onClick={async () => {
+                  if (isSyncing) return;
+                  if (!navigator.onLine) {
+                    showAlert('Kosa', 'Tafadhali unganisha mtandao kwanza!');
+                    return;
+                  }
+                  setIsSyncing(true);
+                  try {
+                    await SyncService.sync(true, 'full');
+                    showAlert('Imefanikiwa', 'Ruhusa zako zimesasishwa kikamilifu!');
+                  } catch (e) {
+                    console.error('Feature sync error:', e);
+                    showAlert('Kosa', 'Imeshindwa kusasisha ruhusa. Jaribu tena baadae au unganisha mtandao vizuri.');
+                  } finally {
+                    setIsSyncing(false);
+                  }
+                }}
+                disabled={isSyncing}
+                className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-sm transition-all active:scale-95 ${isSyncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-amber-600 text-white hover:bg-amber-700'}`}
+              >
+                {isSyncing ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span>Inasasisha Ruhusa...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-5 h-5" />
+                    <span>Sasisha Ruhusa Sasa</span>
+                  </>
+                )}
+              </button>
             </div>
           </section>
         )}

@@ -398,10 +398,13 @@ export class SyncService {
   private static getTableSyncDate(settings: any, tableName: string): string {
     const cursor = settings?.[this.getCursorKey(tableName)];
     if (!cursor) return new Date(0).toISOString();
+    // If it's already a string, it might have microsecond precision from Postgres
+    if (typeof cursor === 'string') return cursor;
+    // Fallback for older number cursors
     return new Date(cursor).toISOString();
   }
 
-  private static async setTableSyncCursor(tableName: string, cursorValue: number) {
+  private static async setTableSyncCursor(tableName: string, cursorValue: string | number) {
     await this.saveSettingsPatch({ [this.getCursorKey(tableName)]: cursorValue });
   }
 
@@ -470,7 +473,8 @@ export class SyncService {
   private static async pullTable(tableName: string, table: DexieTable, shopId: string, lastSyncDate: string, force: boolean) {
     let hasMore = true;
     let offset = 0;
-    let newestRemoteCursor = 0;
+    let newestRemoteCursorMs = 0;
+    let newestRemoteCursorStr: string | null = null;
 
     while (hasMore) {
       let query = supabase.from(tableName).select('*');
@@ -514,14 +518,21 @@ export class SyncService {
           const localData = this.mapToLocal(tableName, record);
           const existing = await table.get(record.id);
 
-          const remoteUpdatedAt = record.updated_at ? new Date(record.updated_at).getTime() : 0;
-          if (remoteUpdatedAt > newestRemoteCursor) newestRemoteCursor = remoteUpdatedAt;
+          const remoteUpdatedAtMs = record.updated_at ? new Date(record.updated_at).getTime() : 0;
+          if (remoteUpdatedAtMs > newestRemoteCursorMs) {
+            newestRemoteCursorMs = remoteUpdatedAtMs;
+            newestRemoteCursorStr = record.updated_at;
+          } else if (remoteUpdatedAtMs === newestRemoteCursorMs && record.updated_at) {
+            if (!newestRemoteCursorStr || record.updated_at > newestRemoteCursorStr) {
+               newestRemoteCursorStr = record.updated_at;
+            }
+          }
 
           const isRemoteNewer = Boolean(
             existing &&
             record.updated_at &&
             existing.updated_at &&
-            new Date(record.updated_at) > new Date(existing.updated_at)
+            (record.updated_at > existing.updated_at || new Date(record.updated_at) > new Date(existing.updated_at))
           );
 
           const hasUnsyncedChanges = Boolean(existing && existing.synced === 0);
@@ -562,8 +573,10 @@ export class SyncService {
       }
     }
 
-    if (newestRemoteCursor > 0) {
-      await this.setTableSyncCursor(tableName, newestRemoteCursor);
+    if (newestRemoteCursorStr) {
+      await this.setTableSyncCursor(tableName, newestRemoteCursorStr);
+    } else if (newestRemoteCursorMs > 0) {
+      await this.setTableSyncCursor(tableName, newestRemoteCursorMs);
     }
   }
 

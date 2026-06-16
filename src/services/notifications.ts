@@ -223,7 +223,7 @@ class NotificationService {
         
         if (daysRemaining <= 5 && daysRemaining > 0) {
           this.sendNotification(
-            `⏳ ONYO: Leseni Inaisha Karibuni`,
+            `⏳ ONYO: Muda wa Mfumo Unaisha Karibuni`,
             `Habari Boss, leseni yako ya Venics Sales inaisha baada ya siku ${daysRemaining}.\nTafadhali piga simu 0787979273 kupata leseni mpya.`,
             400
           );

@@ -180,7 +180,7 @@ export default function Kikapu() {
       // Log anomaly for excessive cart voids
       void SyncService.logAction('anomaly_frequent_voids', {
         employee_name: user?.name || 'Mhudumu',
-        warning: `Amefuta bidhaa kwenye kikapu (Cart Voids) zaidi ya mara ${cartDeletionCount} kwenye huu muamala kabla ya kulipa.`
+        warning: `Amefuta bidhaa kikapuni mara ${cartDeletionCount} kwenye muamala mmoja kabla ya mteja kukamilisha malipo.`
       });
       resetCartDeletionCount();
       // Only optional to show a subtle toast, let's just log it quietly
@@ -453,7 +453,7 @@ export default function Kikapu() {
               amount: totalCartAmt,
               employee_name: user?.name || 'Mhudumu',
               customer_name: customerName,
-              warning: `Mauzo ya deni (${cartTotal().toLocaleString()}) kwa mteja asiye na namba ya simu kamili au jina linaloeleweka (${customerName}). Hii inaweza kuwa mbinu ya kuficha cash.`
+              warning: `Mauzo ya deni kubwa (${cartTotal().toLocaleString()}) kwa mteja asiye na namba ya simu kamili au jina linaloeleweka (${customerName}). Hii inahitaji ukaguzi kuzuia mtaji kufichwa kwenye madeni hewa.`
             });
           }
         }
@@ -541,7 +541,7 @@ export default function Kikapu() {
           amount: anomaliesHeavyDiscountToLog.reduce((sum, d) => sum + d.discounted_price, 0),
           employee_name: user?.name || 'Mhudumu',
           details: anomaliesHeavyDiscountToLog,
-          warning: `Amepunguza bei kiasi kikubwa au kuuza chini ya bei ya kununulia. Bidhaa: ${anomaliesDesc}`
+          warning: `Amepunguza bei ya kuuzia kwa kiasi kikubwa sana au kuuza chini ya bei halisi ya kununulia (bei ya mzigo stoo). Bidhaa: ${anomaliesDesc}`
         });
       }
 

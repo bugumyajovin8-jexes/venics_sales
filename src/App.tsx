@@ -69,6 +69,47 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 export default function App() {
+  useEffect(() => {
+    // Hardware back button behavior for Capacitor/APK
+    const setupBackButton = async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app');
+        
+        await CapApp.addListener('backButton', ({ canGoBack }) => {
+          const state = useStore.getState();
+          
+          // 1. Closables: Check if chatbot is open
+          if (state.isMshauriOpen) {
+            // MshauriChat uses pushState internally, so we go back to trigger popstate closure
+            window.history.back();
+            return;
+          }
+          
+          // 2. Closables: Check if global modal is open
+          if (state.modal.isOpen) {
+            state.hideModal();
+            return;
+          }
+
+          // 3. Navigation: Go back in history if possible
+          if (canGoBack) {
+            window.history.back();
+          } else {
+            // 4. No more history, exit app
+            CapApp.exitApp();
+          }
+        });
+      } catch (e) {
+        // Log silently as this only applies to mobile builds
+        console.debug('Capacitor App plugin not available or error in listener:', e);
+      }
+    };
+
+    if (typeof window !== 'undefined' && (window as any).Capacitor) {
+      void setupBackButton();
+    }
+  }, []);
+
   const isAuthenticated = useStore(state => state.isAuthenticated);
   const user = useStore(state => state.user);
   const setAuth = useStore(state => state.setAuth);
@@ -98,13 +139,13 @@ export default function App() {
       if (daysLeft <= 7) {
         targetNotification = {
           id: 'license_expiry_warning',
-          title: '🚨 Leseni ya Programu Inaisha!',
+          title: '🚨 Matumizi ya Mfumo Yanaisha!',
           message: daysLeft > 0 
-            ? `Leseni ya duka lako inaisha hivi karibuni baada ya siku ${daysLeft}. Lipia haraka kuepuka kufungwa.`
-            : `Muda wa leseni ya duka hili umekwisha kabisa leo! Tafadhali fanya malipo kufungua huduma.`,
+            ? `Huduma ya mfumo kwenye duka lako inaisha hivi karibuni baada ya siku ${daysLeft}. Rekebisha haraka kuepuka kufungwa.`
+            : `Muda wa duka hili kutumia mfumo umekwisha kabisa leo! Tafadhali fanya marekebisho kufungua huduma.`,
           type: 'critical',
           page: 'license',
-          chatPrompt: 'Mwelekeo wa leseni na malipo ya duka langu?',
+          chatPrompt: 'Mwelekeo wa malipo na matumizi ya mfumo kwa duka langu?',
           isRead: false,
           timestamp: Date.now()
         };
@@ -123,11 +164,11 @@ export default function App() {
         const anomaly = recentAnomalies[0]; // just pick the most recent
         targetNotification = {
           id: `anomaly_${anomaly.id}`,
-          title: '🚨 Tendo la Shaka/Ufutaji wa Data!',
-          message: `Mfanyakazi ${anomaly.details?.employee_name || 'mmoja'} amefanya tendo la shaka au kufuta rekodi: "${anomaly.details?.warning || anomaly.details?.details || anomaly.action}".`,
+          title: '🚨 Mabadiliko yenye Mashaka!',
+          message: `Mfanyakazi ${anomaly.details?.employee_name || 'mmoja'} ameripotiwa kufanya mabadiliko: "${anomaly.details?.warning || anomaly.details?.details || anomaly.action}".`,
           type: 'warning',
           page: 'security',
-          chatPrompt: `Nimeona tendo la shaka mnamo ${anomaly.created_at}. Niambie undani wa tabia za wafanyikazi wetu?`,
+          chatPrompt: `Nimebaini mabadiliko yenye mashaka tarehe ${anomaly.created_at}. Nielemishe undani wa usalama wa duka letu?`,
           isRead: false,
           timestamp: new Date(anomaly.created_at).getTime()
         };

@@ -33,7 +33,7 @@ export default function LicenseGuard({ children }: { children: React.ReactNode }
     
     setSyncing(true);
     try {
-      showToast('Inahakiki leseni...', 'info');
+      showToast('Inahakiki huduma...', 'info');
       LicenseService.clearStatusCache();
       await LicenseService.syncLicense(true);
       LicenseService.clearStatusCache();
@@ -42,9 +42,9 @@ export default function LicenseGuard({ children }: { children: React.ReactNode }
       setDaysRemaining(res.daysRemaining);
       
       if (res.status === 'VALID') {
-        showToast('Leseni imehakikiwa kikamilifu!', 'success');
+        showToast('Mfumo umehakikiwa kikamilifu!', 'success');
       } else {
-        showToast('Leseni haijahuishwa bado au imekwisha muda wake.', 'error');
+        showToast('Mfumo haujahuishwa bado au muda wake umekwisha.', 'error');
       }
     } catch (err: any) {
       showToast(err.message || 'Hitilafu ya mtandao imetokea', 'error');
@@ -104,12 +104,12 @@ export default function LicenseGuard({ children }: { children: React.ReactNode }
 
     if (status === 'EXPIRED') {
       icon = <CalendarX className="w-16 h-16 text-red-500 mb-4" />;
-      title = 'Leseni Imeisha';
-      message = 'Muda wa matumizi wa mfumo umeisha. Piga 0787979273 kuongeza muda.';
+      title = 'Mfumo Umeishiwa Muda';
+      message = 'Muda wa kutumia Mfumo kwenye duka lako umekwisha. Tafadhali wasiliana na msimamizi wako ili kuendelea kutoa huduma.';
     } else if (status === 'SYNC_REQUIRED') {
       icon = <Wifi className="w-16 h-16 text-orange-500 mb-4" />;
       title = 'Unganisha Mtandao';
-      message = 'Mfumo unahitaji mtandao kuhakiki leseni. Tafadhali washa data au WiFi.';
+      message = 'Mfumo unahitaji mtandao kuhakiki hali ya huduma. Tafadhali washa data au WiFi.';
     } else if (status === 'DATE_MANIPULATED') {
       icon = <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />;
       title = 'Tarehe Sio Sahihi';
@@ -117,7 +117,7 @@ export default function LicenseGuard({ children }: { children: React.ReactNode }
     } else if (status === 'TAMPERED') {
       icon = <AlertTriangle className="w-16 h-16 text-red-600 mb-4" />;
       title = 'Hitilafu ya Usalama';
-      message = 'Mfumo umegundua mabadiliko yasiyo halali kwenye faili za leseni. Tafadhali wasiliana na msimamizi wako.';
+      message = 'Mfumo umegundua hitilafu kwenye utambulisho wa duka. Tafadhali wasiliana na msimamizi wako.';
     }
 
     return (
@@ -173,7 +173,7 @@ export default function LicenseGuard({ children }: { children: React.ReactNode }
           ) : (
             <Wifi className="w-5 h-5" />
           )}
-          {syncing ? 'Inahakiki...' : 'Hakiki Leseni Sasa'}
+          {syncing ? 'Inahakiki...' : 'Hakiki Huduma Sasa'}
         </button>
       </div>
     );
@@ -183,7 +183,7 @@ export default function LicenseGuard({ children }: { children: React.ReactNode }
     <>
       {daysRemaining <= 5 && (
         <div className="bg-orange-500 text-white text-xs font-bold py-2 px-4 z-50 relative shadow-sm flex items-center justify-between">
-          <span>Siku {daysRemaining} zimebaki kabla ya leseni kuisha.</span>
+          <span>Siku {daysRemaining} zimebaki kabla ya muda wa Mfumo kuisha.</span>
           <a href="tel:0787979273" className="flex items-center gap-1 bg-white text-orange-600 px-3 py-1.5 rounded-full whitespace-nowrap active:scale-95 transition-all shadow-sm">
             <Phone className="w-3.5 h-3.5" />
             Bonyeza hapa kupiga simu kulipia
