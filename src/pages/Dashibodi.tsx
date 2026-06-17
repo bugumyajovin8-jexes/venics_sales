@@ -352,20 +352,20 @@ export default function Dashibodi() {
               navigate('/matumizi');
             }
           }}
-          className={`flex items-center justify-center py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold transition-all ${
+          className={`flex items-center justify-center py-3.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold transition-all cursor-pointer select-none touch-manipulation ${
             !boss && !isFeatureEnabled('staff_expense_management') 
               ? 'opacity-50 text-gray-400 cursor-not-allowed' 
-              : 'text-gray-700 active:scale-95'
+              : 'text-gray-700 active:scale-95 active:bg-gray-50'
           }`}
         >
-          <DollarSign className={`w-3.5 h-3.5 mr-1.5 ${!boss && !isFeatureEnabled('staff_expense_management') ? 'text-gray-400' : 'text-red-500'}`} />
+          <DollarSign className={`w-4 h-4 mr-1.5 ${!boss && !isFeatureEnabled('staff_expense_management') ? 'text-gray-400' : 'text-red-500'}`} />
           {!boss && !isFeatureEnabled('staff_expense_management') ? 'Matumizi (Zuiwa)' : 'Matumizi'}
         </button>
         <button 
           onClick={() => navigate('/historia')}
-          className="flex items-center justify-center py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-gray-700 active:scale-95 transition-all"
+          className="flex items-center justify-center py-3.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-gray-700 active:scale-95 active:bg-gray-50 transition-all cursor-pointer select-none touch-manipulation"
         >
-          <Clock className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
+          <Clock className="w-4 h-4 mr-1.5 text-blue-500" />
           Historia
         </button>
       </div>
