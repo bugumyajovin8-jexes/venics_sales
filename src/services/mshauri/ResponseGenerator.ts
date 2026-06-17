@@ -144,7 +144,7 @@ export class ResponseGenerator {
       }
 
       case 'GENERAL_HELP':
-        return `### Habari, Mimi ni Venics Assistant!\nNimeundwa kukusaidia kusimamia duka lako kwa akili zaidi. Unaweza kuniuliza mambo kama:\n\n` +
+        return `### Habari, Mimi ni Venics Smart!\nNimeundwa kukusaidia kusimamia duka lako kwa akili zaidi. Unaweza kuniuliza mambo kama:\n\n` +
                `- "Mauzo ya leo yakoje?"\n` +
                `- "Bidhaa gani zinaisha?"\n` +
                `- "Nani ananidai kiasi gani?"\n` +

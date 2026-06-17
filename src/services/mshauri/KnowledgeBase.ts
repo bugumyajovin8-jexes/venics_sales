@@ -186,7 +186,7 @@ export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
     titleEn: "How to Check Low Stock Items",
     keywords: ["low stock", "bidhaa zinazoisha", "zimeisha", "mzigo umeisha", "baki kidogo", "alert stock"],
     answer: `### Kuangalia Bidhaa Zinazoisha:
-- **Njia ya Haraka:** Kwenye ukurasa wa mwanzo wa **Dawati la Uchambuzi (Dashibodi)** au kupitia **Venics Assistant**, utaona sanduku maalum lililoandikwa "Low Stock alert" au "Bidhaa zinazoisha".
+- **Njia ya Haraka:** Kwenye ukurasa wa mwanzo wa **Dawati la Uchambuzi (Dashibodi)** au kupitia **Venics Smart**, utaona sanduku maalum lililoandikwa "Low Stock alert" au "Bidhaa zinazoisha".
 - **Njia ya 2:** Kwenye orodha ya **Bidhaa**, bidhaa zenye baki iliyo chini ya Kiwango cha Tahadhari (Minimum Stock) zitatia alama nyekundu au njano kukukumbusha kuagiza haraka.`,
     action: { label: "Kagua Bidhaa Pungufu", path: "/bidhaa" }
   },
@@ -260,7 +260,7 @@ export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
     titleEn: "How to View Daily Sales Reports",
     keywords: ["mauzo ya leo", "ripoti ya siku", "mauzo leo", "daily report", "profit today", "faida ya leo"],
     answer: `### Kuangalia Mauzo na Faida ya Leo (Daily Reports):
-- **Njia Rahisi:** Fungua chat na Venics Assistant na uulize: *"Nimeuza kiasi gani leo?"* au *"Faida ya leo"*. Assistant atapiga hesabu na kukupatia mchanganuo.
+- **Njia Rahisi:** Fungua chat na Venics Smart na uulize: *"Nimeuza kiasi gani leo?"* au *"Faida ya leo"*. Assistant atapiga hesabu na kukupatia mchanganuo.
 - **Njia ya 2:** Nenda kwenye ukurasa wa **Dashibodi (Dashboard)** au ukurasa wa **Historia (History)**. Unaweza kuchuja taarifa za tarehe ya leo ili kuona kila muamala na faida yake husika.`,
     action: { label: "Kagua Dashibodi", path: "/dashibodi" }
   },

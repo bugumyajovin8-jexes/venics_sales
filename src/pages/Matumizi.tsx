@@ -368,7 +368,7 @@ export default function Matumizi() {
                 ) : (
                   <div 
                     onClick={() => toggleMonth(group.monthKey)}
-                    className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:border-blue-200 transition-all duration-200"
+                    className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer transition-all duration-200"
                   >
                     <div className="flex items-center">
                       <div className="bg-blue-50 p-3 rounded-xl mr-4">
@@ -417,7 +417,7 @@ export default function Matumizi() {
                           {(user?.role === 'admin' || user?.role === 'boss') && (
                             <button 
                               onClick={() => expense.id && handleDelete(expense.id)} 
-                              className="mt-2 text-gray-300 hover:text-red-500 transition-colors"
+                              className="mt-2 text-gray-300 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

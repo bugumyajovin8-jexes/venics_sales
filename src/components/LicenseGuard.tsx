@@ -156,7 +156,7 @@ export default function LicenseGuard({ children }: { children: React.ReactNode }
         {(status === 'EXPIRED' || status === 'BLOCKED') && (
            <a 
              href="tel:0787979273"
-             className="bg-green-500 hover:bg-green-600 shadow-xl shadow-green-500/30 text-white px-8 py-3 rounded-xl font-bold transition-all mb-4 flex items-center justify-center gap-2 active:scale-95 w-full max-w-sm"
+             className="bg-green-500 shadow-xl shadow-green-500/30 text-white px-8 py-3 rounded-xl font-bold transition-all mb-4 flex items-center justify-center gap-2 active:scale-95 w-full max-w-sm"
            >
              <Phone className="w-5 h-5" />
              Bonyeza hapa kupiga simu kulipia
@@ -166,7 +166,7 @@ export default function LicenseGuard({ children }: { children: React.ReactNode }
         <button 
           onClick={handleVerify}
           disabled={syncing}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 mb-8 active:scale-[0.98] w-full max-w-sm justify-center shadow-lg shadow-blue-600/20"
+          className="bg-blue-600 disabled:bg-blue-400 text-white px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 mb-8 active:scale-[0.98] w-full max-w-sm justify-center shadow-lg shadow-blue-600/20"
         >
           {syncing ? (
             <RefreshCw className="w-5 h-5 animate-spin" />

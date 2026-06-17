@@ -4,6 +4,7 @@ import { Lock, Mail, Store, Eye, EyeOff } from 'lucide-react';
 import { SyncService } from '../services/sync';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import VenicsLogo from '../components/VenicsLogo';
 
 export default function Login() {
   const setAuth = useStore(state => state.setAuth);
@@ -151,11 +152,11 @@ export default function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
 
       <div className="bg-white p-8 rounded-3xl shadow-lg w-full max-w-sm text-center">
-        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Store className="w-8 h-8" />
+        <div className="mb-6 flex justify-center">
+          <VenicsLogo size={80} animate={loading ? "loading" : "idle"} outerGradient={['#1e3a8a', '#06b6d4']} innerGradient={['#0891b2', '#1e40af']} />
         </div>
-        <h1 className="text-3xl font-bold text-blue-600 mb-2">Venics Sales</h1>
-        <p className="text-gray-500 mb-8 font-medium">Karibu tena! Tafadhali ingia kwenye akaunti yako.</p>
+        <h1 className="text-3xl font-extrabold text-blue-700 tracking-tight mb-2 font-sans">Venics Sales</h1>
+        <p className="text-gray-500 mb-8 font-medium">Karibu kwenye mfumo wako wa uuzaji bora na salama.</p>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="relative">
@@ -183,7 +184,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -192,7 +193,7 @@ export default function Login() {
           <div className="flex justify-end">
             <Link 
               to="/forgot-password" 
-              className="text-xs font-bold text-blue-600 hover:underline"
+              className="text-xs font-bold text-blue-600"
             >
               Nimesahau nenosiri?
             </Link>
@@ -203,15 +204,16 @@ export default function Login() {
           <button
             type="submit"
             disabled={!email || !password || loading}
-            className="w-full bg-blue-600 disabled:bg-gray-300 text-white font-bold py-4 rounded-2xl shadow-md transition-colors mt-4"
+            className="w-full bg-blue-600 disabled:bg-gray-300 text-white font-bold py-4 rounded-2xl shadow-md transition-colors mt-4 flex items-center justify-center gap-2"
           >
+            {loading && <VenicsLogo size={20} animate="loading" outerGradient={['#ffffff', '#06b6d4']} innerGradient={['#22d3ee', '#ffffff']} />}
             {loading ? 'Inapakia...' : 'Ingia'}
           </button>
         </form>
 
         <div className="mt-6 text-sm text-gray-600">
           Huna akaunti?{' '}
-          <Link to="/register" className="text-blue-600 font-bold hover:underline">
+          <Link to="/register" className="text-blue-600 font-bold">
             Jisajili hapa
           </Link>
         </div>

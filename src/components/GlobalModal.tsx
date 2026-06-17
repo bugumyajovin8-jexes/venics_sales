@@ -36,7 +36,7 @@ export const GlobalModal: React.FC = () => {
                 if (modal.onCancel) modal.onCancel();
                 hideModal();
               }}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg font-medium"
             >
               Hapana
             </button>
@@ -47,7 +47,7 @@ export const GlobalModal: React.FC = () => {
               hideModal();
             }}
             className={`px-4 py-2 text-white rounded-lg font-medium ${
-              modal.type === 'alert' ? 'bg-blue-600 hover:bg-blue-700 w-full' : 'bg-red-600 hover:bg-red-700'
+              modal.type === 'alert' ? 'bg-blue-600  w-full' : 'bg-red-600 '
             }`}
           >
             {modal.type === 'alert' ? 'Sawa' : 'Ndiyo'}

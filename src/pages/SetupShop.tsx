@@ -6,6 +6,7 @@ import { supabase } from '../supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { SyncService } from '../services/sync';
 import { db } from '../db';
+import VenicsLogo from '../components/VenicsLogo';
 
 export default function SetupShop() {
   const { user, setAuth, token } = useStore();
@@ -181,7 +182,7 @@ export default function SetupShop() {
           <button 
             onClick={checkInvitationManual}
             disabled={isChecking}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 mb-6"
+            className="w-full bg-blue-600 disabled:bg-gray-300 text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 mb-6"
           >
             {isChecking ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
             Kagua Mwaliko Sasa
@@ -189,7 +190,7 @@ export default function SetupShop() {
 
           <button 
             onClick={() => { setIsEmployeeMode(false); setError(''); }}
-            className="text-gray-500 font-medium hover:text-gray-700 underline"
+            className="text-gray-500 font-medium underline"
           >
             Rudi Nyuma (Mimi ni Bosi)
           </button>
@@ -201,12 +202,12 @@ export default function SetupShop() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md text-center">
-        <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Store className="w-10 h-10" />
+        <div className="mb-6 flex justify-center">
+          <VenicsLogo size={80} animate={loading ? "loading" : "idle"} outerGradient={['#1e3a8a', '#06b6d4']} innerGradient={['#0891b2', '#1e40af']} />
         </div>
         
-        <h1 className="text-3xl font-bold text-blue-600 mb-2">Venics Sales</h1>
-        <p className="text-gray-500 mb-8">Karibu! Hebu tuanzishe duka lako la kwanza.</p>
+        <h1 className="text-3xl font-extrabold text-blue-700 tracking-tight mb-2 font-sans">Venics Sales</h1>
+        <p className="text-gray-500 mb-8 font-medium">Karibu! Hebu tuanzishe duka lako la kwanza.</p>
 
         <form onSubmit={handleSetup} className="space-y-6">
           <div className="text-left">
@@ -236,7 +237,7 @@ export default function SetupShop() {
           <button 
             type="submit" 
             disabled={!shopName.trim() || loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 group"
+            className="w-full bg-blue-600 disabled:bg-gray-300 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 group"
           >
             {loading ? (
               <>
@@ -246,7 +247,7 @@ export default function SetupShop() {
             ) : (
               <>
                 Anza Sasa
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 group- transition-transform" />
               </>
             )}
           </button>
@@ -256,7 +257,7 @@ export default function SetupShop() {
           <p className="text-sm text-gray-500 mb-3">Wewe ni mfanyakazi na sio mmiliki wa duka?</p>
           <button 
             onClick={() => setIsEmployeeMode(true)}
-            className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors"
+            className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-xl transition-colors"
           >
             Mimi ni Mfanyakazi
           </button>

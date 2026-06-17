@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../supabase';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import VenicsLogo from '../components/VenicsLogo';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -38,8 +39,8 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-8 rounded-3xl shadow-lg w-full max-w-sm text-center">
-        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Mail className="w-8 h-8" />
+        <div className="mb-6 flex justify-center">
+          <VenicsLogo size={80} animate={loading ? "loading" : "idle"} outerGradient={['#1e3a8a', '#06b6d4']} innerGradient={['#0891b2', '#1e40af']} />
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Nimesahau Nenosiri</h1>
         <p className="text-gray-500 mb-8 text-sm">Ingiza barua pepe yako ili kupokea link ya kubadili nenosiri.</p>
@@ -88,7 +89,7 @@ export default function ForgotPassword() {
 
             <Link 
               to="/login" 
-              className="flex items-center justify-center text-sm text-gray-500 font-bold hover:text-blue-600 mt-6"
+              className="flex items-center justify-center text-sm text-gray-500 font-bold mt-6"
             >
               <ArrowLeft className="w-4 h-4 mr-2" /> Rudi Kwenye Login
             </Link>

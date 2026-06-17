@@ -360,7 +360,7 @@ export default function ExecutiveDashboard() {
           </div>
           <button
             onClick={() => setShowEmployeeReports(true)}
-            className="w-full bg-blue-50 text-blue-700 font-bold py-4 rounded-2xl flex items-center justify-center transition-colors hover:bg-blue-100"
+            className="w-full bg-blue-50 text-blue-700 font-bold py-4 rounded-2xl flex items-center justify-center transition-colors"
           >
             Tazama Ripoti za Wafanyakazi (Zamu)
             <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
@@ -376,7 +376,7 @@ export default function ExecutiveDashboard() {
       >
         <button
           onClick={() => navigate('/audit-logs')}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-[2rem] shadow-sm flex items-center justify-between transition-colors"
+          className="w-full bg-blue-600 text-white p-5 rounded-[2rem] shadow-sm flex items-center justify-between transition-colors"
         >
           <div className="flex items-center">
             <div className="bg-blue-500/30 p-2 rounded-full mr-4">

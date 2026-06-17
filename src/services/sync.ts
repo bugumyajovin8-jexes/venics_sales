@@ -160,6 +160,101 @@ export class SyncService {
     return 1;
   }
 
+  public static async ensureSessionValid(): Promise<boolean> {
+    try {
+      // 1. Fetch current session from Supabase Client memory/cookie storage
+      let { data: { session } } = await supabase.auth.getSession();
+      
+      const bufferMs = 600000; // 10 minutes safety buffer before expiration
+      const isValid = session && session.expires_at && (session.expires_at * 1000 - Date.now() > bufferMs);
+      
+      if (session && isValid) {
+        // Current in-memory session is fully valid! Reinforce backup local storage tokens.
+        localStorage.setItem('pos_token', session.access_token);
+        if (session.refresh_token) {
+          localStorage.setItem('pos_refresh_token', session.refresh_token);
+        }
+        return true;
+      }
+      
+      console.log('[SyncService] In-memory session missing, expired or expiring within 10 minutes. Healing auth...');
+      
+      // 2. Fetch backup tokens from persistent localStorage
+      const storedAccess = localStorage.getItem('pos_token');
+      const storedRefresh = localStorage.getItem('pos_refresh_token');
+      
+      // If we have a refresh token, we can forcefully request a refreshed session
+      if (storedRefresh) {
+        console.log('[SyncService] Attempting explicit refreshSession with persisted refresh_token...');
+        try {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession({
+            refresh_token: storedRefresh
+          });
+          
+          if (refreshData?.session) {
+            console.log('[SyncService] Auth session successfully healed using refresh_token.');
+            // Update backup keys
+            localStorage.setItem('pos_token', refreshData.session.access_token);
+            if (refreshData.session.refresh_token) {
+              localStorage.setItem('pos_refresh_token', refreshData.session.refresh_token);
+            }
+            
+            // Sync store so visual indicators show online/authorized state immediately
+            const currentUser = useStore.getState().user;
+            if (currentUser) {
+              useStore.getState().setAuth(refreshData.session.access_token, currentUser, refreshData.session.refresh_token);
+            }
+            return true;
+          } else {
+            console.warn('[SyncService] refreshSession block failed:', refreshError);
+          }
+        } catch (err) {
+          console.error('[SyncService] Exception during refreshSession:', err);
+        }
+      }
+      
+      // Fallback: Try setSession with both tokens
+      if (storedAccess && storedRefresh) {
+        console.log('[SyncService] Attempting setSession with stored access and refresh tokens...');
+        try {
+          const { data: setSessionData, error: setSessionError } = await supabase.auth.setSession({
+            access_token: storedAccess,
+            refresh_token: storedRefresh
+          });
+          
+          if (setSessionData?.session) {
+            console.log('[SyncService] Auth recovered successfully via setSession.');
+            localStorage.setItem('pos_token', setSessionData.session.access_token);
+            if (setSessionData.session.refresh_token) {
+              localStorage.setItem('pos_refresh_token', setSessionData.session.refresh_token);
+            }
+            
+            const currentUser = useStore.getState().user;
+            if (currentUser) {
+              useStore.getState().setAuth(setSessionData.session.access_token, currentUser, setSessionData.session.refresh_token);
+            }
+            return true;
+          } else {
+            console.warn('[SyncService] setSession block failed:', setSessionError);
+          }
+        } catch (err) {
+          console.error('[SyncService] Exception during setSession:', err);
+        }
+      }
+
+      // Final double-check: if network issue occurred, sometimes getSession() might still recover locally.
+      const { data: finalCheck } = await supabase.auth.getSession();
+      if (finalCheck?.session) {
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      console.error('[SyncService] Critical session validation exception:', e);
+      return false;
+    }
+  }
+
   private static async runOneSync(force: boolean, scope: SyncScope): Promise<void> {
     const now = Date.now();
     if (!force) {
@@ -176,40 +271,15 @@ export class SyncService {
     const user = state.user;
     if (!user?.shopId) return;
 
-    // Ensure session is active before syncing, especially crucial for PWAs from background
-    try {
-      let { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        const canLog = Date.now() - this.lastAuthWarnTime > 60000;
-        if (canLog) {
-          console.warn('[SyncService] No active session before sync. Attempting local restore...');
-          this.lastAuthWarnTime = Date.now();
-        }
-        
-        const storedAccess = localStorage.getItem('pos_token');
-        const storedRefresh = localStorage.getItem('pos_refresh_token');
-        
-        if (storedAccess && storedRefresh) {
-           const { data } = await supabase.auth.setSession({ access_token: storedAccess, refresh_token: storedRefresh });
-           session = data.session;
-        }
-
-        if (!session) {
-           if (canLog) console.warn('[SyncService] Attempting manual refreshSession...');
-           const { data: refreshData } = await supabase.auth.refreshSession();
-           session = refreshData.session;
-        }
-
-        if (!session) {
-           if (canLog) console.error('[SyncService] Could not restore session. Sync deferred until valid session is established.');
-           return;
-        }
-      } else if (session.expires_at && (session.expires_at * 1000) - Date.now() < 300000) {
-        // Refresh proactively if expiring within 5 minutes
-        await supabase.auth.refreshSession();
+    // Direct proactive session recovery before starting any push or pull procedures
+    const isSessionValid = await this.ensureSessionValid();
+    if (!isSessionValid) {
+      const canLog = Date.now() - this.lastAuthWarnTime > 60000;
+      if (canLog) {
+        console.error('[SyncService] Sync aborted because active Supabase session could not be established or recovered.');
+        this.lastAuthWarnTime = Date.now();
       }
-    } catch (e) {
-      console.warn('[SyncService] Session check skipped due to error:', e);
+      return;
     }
 
     const shopId = user.shopId;

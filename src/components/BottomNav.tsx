@@ -27,7 +27,7 @@ export default function BottomNav() {
           to={item.to}
           className={({ isActive }) =>
             `flex flex-col items-center justify-center w-full h-full space-y-1 ${
-              isActive ? 'text-blue-600' : 'text-gray-500 hover:text-gray-900'
+              isActive ? 'text-blue-600' : 'text-gray-500 '
             }`
           }
         >

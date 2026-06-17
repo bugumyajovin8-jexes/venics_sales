@@ -327,7 +327,7 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
       <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-800">Ingiza Bidhaa (Excel)</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 rounded-full transition-colors">
             <X className="w-6 h-6 text-gray-500" />
           </button>
         </div>
@@ -336,7 +336,7 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
           {step === 'upload' && (
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-gray-200 rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all"
+              className="border-2 border-dashed border-gray-200 rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer transition-all"
             >
               <Upload className="w-12 h-12 text-blue-500 mb-4" />
               <p className="text-gray-600 font-medium text-center">Bonyeza hapa kupakia faili la Excel (.xlsx, .xls, .csv)</p>
@@ -547,7 +547,7 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
                   <p className="text-sm text-gray-500 mb-3">Kuna makosa yamejitokeza. Unaweza kupakua faili la Excel lenye data zilizofeli pekee ili kuzirekebisha:</p>
                   <button 
                     onClick={downloadErrors}
-                    className="flex items-center justify-center space-x-2 w-full p-4 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-colors"
+                    className="flex items-center justify-center space-x-2 w-full p-4 bg-gray-100 text-gray-700 rounded-2xl font-bold transition-colors"
                   >
                     <Download className="w-5 h-5" />
                     <span>Pakua Faili la Makosa (Excel)</span>

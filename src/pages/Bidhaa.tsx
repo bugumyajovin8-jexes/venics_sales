@@ -298,7 +298,7 @@ export default function Bidhaa() {
               {canManageProducts && (
                 <button 
                   onClick={() => setStockModalProduct(product)}
-                  className="ml-2 bg-blue-100 hover:bg-blue-200 text-blue-700 p-1 rounded-md transition-colors"
+                  className="ml-2 bg-blue-100 text-blue-700 p-1 rounded-md transition-colors relative after:absolute after:content-[''] after:-inset-3"
                   title="Ongeza idadi ya bidhaa"
                 >
                   <Plus className="w-4 h-4" />
@@ -307,7 +307,7 @@ export default function Bidhaa() {
               {canManageProducts && isExpiryEnabled && (
                 <button 
                   onClick={() => setBatchModalProduct(product)}
-                  className="ml-2 bg-orange-100 hover:bg-orange-200 text-orange-700 p-1 rounded-md transition-colors"
+                  className="ml-2 bg-orange-100 text-orange-700 p-1 rounded-md transition-colors relative after:absolute after:content-[''] after:-inset-3"
                   title="Simamia tarehe za kuisha"
                 >
                   <Calendar className="w-4 h-4" />
@@ -628,7 +628,7 @@ export default function Bidhaa() {
               <button 
                 onClick={() => setIsAIScanModalOpen(true)}
                 className="bg-green-50 text-green-600 p-2 rounded-full border border-green-100 shrink-0"
-                title="Sajili kwa Venics Assistant (Picha)"
+                title="Sajili kwa Venics Smart (Picha)"
               >
                 <Camera className="w-6 h-6" />
               </button>
@@ -645,7 +645,7 @@ export default function Bidhaa() {
           </div>
           <button 
             onClick={() => setIsAdding(true)}
-            className="bg-blue-600 text-white p-2.5 rounded-full shadow-lg hover:bg-blue-700 transition-all shrink-0 ml-1 active:scale-95"
+            className="bg-blue-600 text-white p-2.5 rounded-full shadow-lg transition-all shrink-0 ml-1 active:scale-95"
           >
             <Plus className="w-6 h-6" />
           </button>

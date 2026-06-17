@@ -259,7 +259,14 @@ export default function App() {
         if (!hasLocalToken) {
           logout();
         } else {
-          console.warn('Ignore background Supabase SIGNED_OUT event because local session token is still valid.');
+          console.warn('[App] Supabase backend reported SIGNED_OUT, but local credentials exist. Initiating silent session recovery...');
+          void SyncService.ensureSessionValid().then(recovered => {
+            if (recovered) {
+              console.log('[App] Silent session recovery succeeded after SIGNED_OUT notification.');
+            } else {
+              console.error('[App] Silent session recovery failed. Retaining offline cache.');
+            }
+          });
         }
       } else if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         const currentUser = useStore.getState().user;
@@ -326,6 +333,13 @@ export default function App() {
     const checkStatus = async () => {
       try {
         if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+
+        // Perform proactive silent auth session healing check
+        const isSessionOK = await SyncService.ensureSessionValid();
+        if (!isSessionOK) {
+          console.warn('[App] Silent session verification failed during status check. Sync paused.');
+          return;
+        }
 
         const { data: userData, error } = await supabase
           .from('users')
@@ -509,32 +523,34 @@ export default function App() {
           isAppInactive = false;
           useStore.getState().setSyncStatus('active');
           
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-              await supabase.auth.refreshSession();
-            }
-          } catch (e) {
-            console.warn('Proactive session refresh failed:', e);
+          const isAuthed = await SyncService.ensureSessionValid();
+          if (isAuthed) {
+            // Force critical sync first to get transactions, then full sync on iOS wake
+            void SyncService.sync(false, 'critical').then(() => {
+              void SyncService.sync(false, 'full');
+            });
+            void checkBroadcasts();
+          } else {
+            console.warn('[App] Proactive session verification failed on focus. Offline sync queue preserved.');
           }
-          
-          // Force critical sync first to get transactions, then full sync on iOS wake
-          void SyncService.sync(false, 'critical').then(() => {
-            void SyncService.sync(false, 'full');
-          });
-          void checkBroadcasts();
         }
       }
     };
 
-    const handleOnline = () => {
+    const handleOnline = async () => {
       lastActiveTime = Date.now();
       isAppInactive = false;
       useStore.getState().setSyncStatus('active');
-      void SyncService.sync(false, 'critical').then(() => {
-        void SyncService.sync(false, 'full');
-      });
-      void checkBroadcasts();
+      
+      const isAuthed = await SyncService.ensureSessionValid();
+      if (isAuthed) {
+        void SyncService.sync(false, 'critical').then(() => {
+          void SyncService.sync(false, 'full');
+        });
+        void checkBroadcasts();
+      } else {
+        console.warn('[App] Proactive session verification failed on network recovery.');
+      }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -574,7 +590,7 @@ export default function App() {
       <GlobalModal />
       <ToastContainer />
       <LicenseGuard>
-        <div className={`flex flex-col h-screen h-[100dvh] bg-gray-50 pt-[env(safe-area-inset-top)] ${settings?.darkMode ? 'dark' : ''}`}>
+        <div className={`flex flex-col h-screen h-[100dvh] bg-gray-50 pt-safe pt-safe-standalone ${settings?.darkMode ? 'dark' : ''}`}>
           <div className="flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))]">
             <Routes>
               {needsShopSetup ? (

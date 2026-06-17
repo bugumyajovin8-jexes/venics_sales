@@ -148,7 +148,7 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
             </h2>
             <p className="text-sm text-gray-500">Piga picha risiti au rafu kusajili bidhaa</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 rounded-full transition-colors">
             <X className="w-6 h-6 text-gray-500" />
           </button>
         </div>
@@ -166,9 +166,9 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
               <div className="grid grid-cols-2 gap-4">
                 <div 
                   onClick={() => cameraInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-3xl p-8 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-300 transition-all cursor-pointer group"
+                  className="border-2 border-dashed border-gray-200 rounded-3xl p-8 flex flex-col items-center justify-center bg-gray-50 transition-all cursor-pointer group"
                 >
-                  <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group- transition-transform">
                     <Camera className="w-7 h-7" />
                   </div>
                   <p className="text-sm font-bold text-gray-900 mb-1 text-center">Piga Picha</p>
@@ -185,9 +185,9 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
 
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-3xl p-8 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-300 transition-all cursor-pointer group"
+                  className="border-2 border-dashed border-gray-200 rounded-3xl p-8 flex flex-col items-center justify-center bg-gray-50 transition-all cursor-pointer group"
                 >
-                  <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-4 group- transition-transform">
                     <Upload className="w-7 h-7" />
                   </div>
                   <p className="text-sm font-bold text-gray-900 mb-1 text-center">Pakia Picha</p>
@@ -233,7 +233,7 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
                 {image && (
                    <button 
                     onClick={() => setStep('upload')}
-                    className="text-xs font-bold text-blue-600 hover:underline"
+                    className="text-xs font-bold text-blue-600"
                    >
                     Badilisha Picha
                    </button>
@@ -252,7 +252,7 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
                           placeholder="Jina la bidhaa"
                         />
                       </div>
-                      <button onClick={() => removeItem(index)} className="p-1 text-gray-400 hover:text-red-500">
+                      <button onClick={() => removeItem(index)} className="p-1 text-gray-400">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -324,7 +324,7 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
           <div className="p-6 border-t border-gray-100 bg-white sticky bottom-0">
             <button 
               onClick={handleSave}
-              className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center"
+              className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-100 transition-all flex items-center justify-center"
             >
               <Check className="w-5 h-5 mr-2" /> Hifadhi Bidhaa Zote
             </button>

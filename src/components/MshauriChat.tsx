@@ -178,7 +178,7 @@ function SyncDiagResponse() {
             className={`w-full py-2.5 px-3 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all shadow border ${
               syncing 
                 ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed' 
-                : 'bg-indigo-600 border-indigo-700 hover:bg-indigo-700 text-white cursor-pointer active:scale-98'
+                : 'bg-indigo-600 border-indigo-700  text-white cursor-pointer active:scale-98'
             }`}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-slate-400' : 'text-indigo-200'}`} />
@@ -289,7 +289,7 @@ function InlineAddStaffForm() {
         <button
           type="submit"
           disabled={loading || !email}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 font-bold text-white text-xs py-2 px-3 rounded-xl transition-all shadow-md active:scale-98 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center space-x-1"
+          className="w-full bg-indigo-600 font-bold text-white text-xs py-2 px-3 rounded-xl transition-all shadow-md active:scale-98 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center space-x-1"
         >
           {loading ? (
             <>
@@ -377,7 +377,7 @@ function InlineToggleFeaturesForm() {
                   onClick={() => handleToggle(f.key, isEnabled)}
                   className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center ${
                     isEnabled ? f.color : 'bg-gray-300'
-                  } ${isPending ? 'opacity-50' : 'cursor-pointer hover:opacity-95'}`}
+                  } ${isPending ? 'opacity-50' : 'cursor-pointer '}`}
                 >
                   <div
                     className={`absolute w-3.5 h-3.5 bg-white rounded-full transition-all shadow-4xs ${
@@ -464,7 +464,7 @@ function EmployeeBreakdownResponse({
             className={`flex-1 py-1 px-2 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
               period === p
                 ? 'bg-white text-indigo-700 shadow-sm'
-                : 'text-slate-600 hover:text-slate-950 hover:bg-white/30'
+                : 'text-slate-600  '
             }`}
           >
             {p === 'week' ? 'Wiki Hii' : p === 'month' ? 'Mwezi' : 'Miezi 6'}
@@ -530,7 +530,7 @@ function EmployeeBreakdownResponse({
                     onSelectEmployee(u.name);
                   }
                 }}
-                className="w-full py-1 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg flex items-center justify-center space-x-1 transition-all active:scale-98 cursor-pointer"
+                className="w-full py-1 px-2.5 bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg flex items-center justify-center space-x-1 transition-all active:scale-98 cursor-pointer"
               >
                 <span>Angalia Wasifu na Ushauri wake 🔍</span>
               </button>
@@ -586,7 +586,7 @@ function SingleEmployeeReport({
         {onBackToGeneral && (
           <button
             onClick={onBackToGeneral}
-            className="text-[10px] text-indigo-700 hover:text-indigo-900 font-extrabold bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm transition-all cursor-pointer active:scale-95"
+            className="text-[10px] text-indigo-700 font-extrabold bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm transition-all cursor-pointer active:scale-95"
           >
             ← Wote
           </button>
@@ -640,7 +640,7 @@ function SingleEmployeeReport({
       <div className="bg-indigo-50/50 border border-indigo-100/60 p-3 rounded-xl space-y-1">
         <div className="flex items-center space-x-1">
           <span className="text-xs">💡</span>
-          <span className="font-extrabold text-xs text-indigo-900">Ushauri wa Venics Assistant:</span>
+          <span className="font-extrabold text-xs text-indigo-900">Ushauri wa Venics Smart:</span>
         </div>
         <p className="text-[11px] text-indigo-950 font-medium leading-relaxed">
           {recentAnomalies.length > 0 
@@ -966,7 +966,7 @@ export default function MshauriChat() {
 
     if (!welcomeDismissed && currentCount < 5) {
       const welcomeId = 'welcome_msg';
-      const welcomeMsgText = `Habari Boss ${user.name || 'Bosi'}! Mimi ni Venics Assistant wako wa Biashara aliyebobea. Niulize maswali mazito ya ki-uchambuzi au maswali ya mzunguko wa stock, kubana matumizi na ulinzi wa duka.`;
+      const welcomeMsgText = `Habari Boss ${user.name || 'Bosi'}! Mimi ni Venics Smart, mshauri wako wa biashara aliyebobea duka hili. Niulize maswali mazito ya ki-uchambuzi au maswali ya mzunguko wa stock, kubana matumizi na ulinzi wa duka.`;
       
       const welcomeMsg: Message = {
         id: welcomeId,
@@ -1134,7 +1134,7 @@ export default function MshauriChat() {
                 e.preventDefault();
                 sendMessage(suggestion);
               }}
-              className="inline-flex items-center text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border-b border-indigo-200 px-1 mx-0.5 rounded transition-all cursor-pointer font-medium underline decoration-indigo-300 underline-offset-2"
+              className="inline-flex items-center text-indigo-700 bg-indigo-50 border-b border-indigo-200 px-1 mx-0.5 rounded transition-all cursor-pointer font-medium underline decoration-indigo-300 underline-offset-2"
             >
               "{suggestion}"
             </button>
@@ -1376,7 +1376,7 @@ export default function MshauriChat() {
               setIsOpen(false);
               navigate('/historia', { state: { filter: period.filterKey, view: period.targetView } });
             }}
-            className="w-full mt-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
+            className="w-full mt-2 py-2 px-3 bg-indigo-600 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
           >
             <span>📊 {period.targetView === 'risiti' ? 'Orodha ya Risiti' : 'Ripoti za Biashara'} ({period.label})</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1425,7 +1425,7 @@ export default function MshauriChat() {
                 setIsOpen(false);
                 navigate('/matumizi');
               }}
-              className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all cursor-pointer"
+              className="py-2 px-3 bg-slate-100 text-slate-800 text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all cursor-pointer"
             >
               <span>💸 Orodha</span>
             </button>
@@ -1434,7 +1434,7 @@ export default function MshauriChat() {
                 setIsOpen(false);
                 navigate('/historia', { state: { filter: period.filterKey, view: period.targetView } });
               }}
-              className="py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
+              className="py-2 px-3 bg-indigo-600 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
             >
               <span>📊 Ripoti</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1490,7 +1490,7 @@ export default function MshauriChat() {
                   const whatsappUrl = formattedPhone ? `https://wa.me/${formattedPhone}/?text=${encodedText}` : null;
 
                   return (
-                    <div key={idx} className="bg-white border border-slate-100 p-2.5 rounded-xl flex items-center justify-between text-xs transition-colors hover:border-slate-200">
+                    <div key={idx} className="bg-white border border-slate-100 p-2.5 rounded-xl flex items-center justify-between text-xs transition-colors">
                       <div className="min-w-0 pr-2">
                         <p className="font-bold text-slate-800 truncate">{debt.customer_name}</p>
                         <p className="text-[10px] text-red-600 font-extrabold">{formatCurrency(remaining, currency)} baki</p>
@@ -1501,7 +1501,7 @@ export default function MshauriChat() {
                           href={whatsappUrl} 
                           target="_blank" 
                           rel="noreferrer"
-                          className="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-2 py-1.5 rounded-lg border border-emerald-100 flex items-center space-x-1 transition-all"
+                          className="shrink-0 bg-emerald-50 text-emerald-700 font-bold px-2 py-1.5 rounded-lg border border-emerald-100 flex items-center space-x-1 transition-all"
                         >
                           <span className="text-[12px]">💬</span>
                           <span className="text-[10px]">Kumbusha</span>
@@ -1512,7 +1512,7 @@ export default function MshauriChat() {
                             setIsOpen(false);
                             navigate('/madeni');
                           }}
-                          className="shrink-0 bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold px-2 py-1.5 rounded-lg border border-slate-200/50 flex items-center space-x-1"
+                          className="shrink-0 bg-slate-50 text-slate-500 font-bold px-2 py-1.5 rounded-lg border border-slate-200/50 flex items-center space-x-1"
                         >
                           <span className="text-[11px]">✏️</span>
                           <span className="text-[10px] text-slate-600">Weka Namba</span>
@@ -1530,7 +1530,7 @@ export default function MshauriChat() {
               setIsOpen(false);
               navigate('/madeni');
             }}
-            className="w-full mt-1.5 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
+            className="w-full mt-1.5 py-2 px-3 bg-indigo-600 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
           >
             <span>👉 Fungua Daftari la Madeni</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1581,7 +1581,7 @@ export default function MshauriChat() {
               setIsOpen(false);
               navigate('/historia', { state: { filter: period.filterKey, view: period.targetView } });
             }}
-            className="w-full mt-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
+            className="w-full mt-2 py-2 px-3 bg-indigo-600 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
           >
             <span>📊 {period.targetView === 'risiti' ? 'Orodha ya Risiti' : 'Ripoti za Biashara'} ({period.label})</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1619,7 +1619,7 @@ export default function MshauriChat() {
               setIsOpen(false);
               navigate('/dashibodi', { state: { openLowStock: true } });
             }}
-            className="w-full mt-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
+            className="w-full mt-2 py-2 px-3 bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
           >
             <span>⚠️ Fungua Orodha Ya Low Stock</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1656,7 +1656,7 @@ export default function MshauriChat() {
               setIsOpen(false);
               navigate('/audit-logs');
             }}
-            className="w-full mt-2 py-2 px-3 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
+            className="w-full mt-2 py-2 px-3 bg-red-600 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1 transition-all shadow-md active:scale-98 cursor-pointer"
           >
             <span>🚨 Fungua Daftari la Mabadiliko ya Duka</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1758,11 +1758,11 @@ export default function MshauriChat() {
       <div className="space-y-1 text-slate-700">
         <p>Sijakuelewa vizuri bosi. Jaribu kuuliza maswali yanayohusu:</p>
         <ul className="list-disc pl-4 text-xs space-y-1 text-indigo-700 italic mt-1.5">
-          <li className="cursor-pointer hover:underline" onClick={() => setInputValue('Mauzo jana yalikuwaje?')}>"Mauzo jana yalikuwaje?"</li>
-          <li className="cursor-pointer hover:underline" onClick={() => setInputValue('Matumizi leo ni kiasi gani?')}>"Matumizi leo ni kiasi gani?"</li>
-          <li className="cursor-pointer hover:underline" onClick={() => setInputValue('Bidhaa gani zinauzwa sana mwezi huu?')}>"Bidhaa gani zinauzwa sana mwezi huu?"</li>
-          <li className="cursor-pointer hover:underline" onClick={() => setInputValue('Bidhaa gani zinaisha (low stock)?')}>"Bidhaa gani zinaisha?"</li>
-          <li className="cursor-pointer hover:underline" onClick={() => setInputValue('Kuna tabia za wizi duka letu?')}>"Kuna tabia za wizi duka letu?"</li>
+          <li className="cursor-pointer" onClick={() => setInputValue('Mauzo jana yalikuwaje?')}>"Mauzo jana yalikuwaje?"</li>
+          <li className="cursor-pointer" onClick={() => setInputValue('Matumizi leo ni kiasi gani?')}>"Matumizi leo ni kiasi gani?"</li>
+          <li className="cursor-pointer" onClick={() => setInputValue('Bidhaa gani zinauzwa sana mwezi huu?')}>"Bidhaa gani zinauzwa sana mwezi huu?"</li>
+          <li className="cursor-pointer" onClick={() => setInputValue('Bidhaa gani zinaisha (low stock)?')}>"Bidhaa gani zinaisha?"</li>
+          <li className="cursor-pointer" onClick={() => setInputValue('Kuna tabia za wizi duka letu?')}>"Kuna tabia za wizi duka letu?"</li>
         </ul>
       </div>
     );
@@ -2510,7 +2510,7 @@ export default function MshauriChat() {
     if (typeof text === 'string') {
       textToStore = text;
     } else {
-      textToStore = '[Uchambuzi maalum wa Venics Assistant]';
+      textToStore = '[Uchambuzi maalum wa Venics Smart]';
     }
 
     try {
@@ -2639,7 +2639,7 @@ export default function MshauriChat() {
           .reduce((acc, s) => acc + s.total_amount, 0);
 
         const shopContext = `
-Wewe ni Mshauri wa Biashara mwenye ujuzi wa hali ya juu na msaidizi wa kipekee (virtual business advisor) anayeitwa "Venics Assistant".
+Wewe ni Mshauri wa Biashara mwenye ujuzi wa hali ya juu na msaidizi wa kipekee (virtual business advisor) anayeitwa "Venics Smart".
 Takwimu duka hivi sasa:
 - Duka: ${settings?.shopName || 'duka letu'} | Sarafu: ${currency}
 - Bidhaa: ${totalProductsCount} | Low Stock: [${lowStockProductsText || 'Hakuna'}]
@@ -2818,7 +2818,7 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
       {/* Floating Action Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`${isOpen ? 'hidden' : 'flex'} fixed bottom-24 right-4 sm:bottom-6 sm:right-6 bg-white hover:scale-110 active:scale-95 transition-all z-50 animate-bounce cursor-pointer justify-center items-center rounded-full shadow-[0_20px_50px_rgba(79,70,229,0.45),_0_0_0_4px_rgba(255,255,255,1),_0_0_20px_4px_rgba(99,102,241,0.25)] border border-slate-100 duration-200 p-1`}
+        className={`${isOpen ? 'hidden' : 'flex'} fixed bottom-24 right-4 sm:bottom-6 sm:right-6 bg-white  active:scale-95 transition-all z-50 animate-bounce cursor-pointer justify-center items-center rounded-full shadow-[0_20px_50px_rgba(79,70,229,0.45),_0_0_0_4px_rgba(255,255,255,1),_0_0_20px_4px_rgba(99,102,241,0.25)] border border-slate-100 duration-200 p-1`}
         style={{ width: '64px', height: '64px' }}
       >
         <VenicsLogo size={54} animate="idle" outerGradient={['#4f46e5', '#06b6d4']} innerGradient={['#10b981', '#3b82f6']} />
@@ -2828,22 +2828,26 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
       {isOpen && (
         <div className="fixed inset-x-0 bottom-0 top-0 sm:inset-auto sm:bottom-6 sm:right-6 w-full sm:w-[440px] md:w-[450px] max-w-full h-[100dvh] sm:h-[700px] max-h-[92vh] z-[100] flex flex-col bg-white sm:rounded-2xl shadow-2xl border-0 sm:border border-gray-200 overflow-hidden transform transition-all pb-safe md:mr-4 font-sans ring-1 ring-slate-200/50 animate-in fade-in slide-in-from-bottom duration-200">
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 p-4 flex items-center justify-between shadow-md z-10 shrink-0">
+          <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] sm:pt-4 flex items-center justify-between shadow-md z-10 shrink-0">
             <div className="flex items-center space-x-2.5">
               <div className="bg-white/10 p-1 rounded-xl flex items-center justify-center shrink-0">
                 <VenicsLogo size={24} animate="idle" vGradient={['#ffffff', '#e0e7ff']} outerGradient={['#38bdf8', '#06b6d4']} innerGradient={['#10b981', '#3b82f6']} />
               </div>
               <div>
                 <h3 className="font-bold text-white text-[15px] leading-tight flex items-center gap-1.5">
-                  Venics Assistant
+                  Venics Smart
                   <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
                 </h3>
               </div>
             </div>
             
             <div className="flex items-center space-x-2.5">
-              <button onClick={() => setIsOpen(false)} className="text-indigo-200 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors cursor-pointer">
-                <X className="w-4 h-4" />
+              <button 
+                onClick={() => setIsOpen(false)} 
+                className="bg-red-500 text-white hover:bg-red-600 active:scale-90 p-2 rounded-full transition-all cursor-pointer shadow-md select-none touch-manipulation flex items-center justify-center border border-red-400/30 shrink-0"
+                title="Funga gumzo"
+              >
+                <X className="w-5 h-5 stroke-[2.5]" />
               </button>
             </div>
           </div>
@@ -2894,7 +2898,7 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
                                   <button 
                                     onClick={handleDismissWelcome}
                                     title="Usionyeshe tena"
-                                    className="absolute top-2.5 right-2.5 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100/55 transition-colors cursor-pointer"
+                                    className="absolute top-2.5 right-2.5 text-slate-400 p-1.5 rounded-full transition-colors cursor-pointer"
                                   >
                                     <X className="w-3.5 h-3.5" />
                                   </button>
@@ -2984,7 +2988,7 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
                                           setIsOpen(false);
                                         }
                                       }}
-                                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+                                      className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
                                     >
                                       <span className="text-sm">🚀</span>
                                       {msg.action.label.startsWith('Fungua') || msg.action.label.startsWith('Angalia') ? msg.action.label : `Fungua ${msg.action.label}`}
@@ -2996,7 +3000,7 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
                                           markMessageAsSeen(msg.id);
                                           setMessages(prev => prev.filter(m => m.id !== msg.id));
                                         }}
-                                        className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer border border-slate-200/40"
+                                        className="flex items-center gap-1.5 bg-slate-100 text-slate-600 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer border border-slate-200/40"
                                       >
                                         <span>Nimeelewa / Funga</span>
                                       </button>
@@ -3013,9 +3017,9 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
                                          onClick={() => {
                                            sendMessage(fu);
                                           }}
-                                         className={`text-xs bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 hover:text-indigo-700 ${isOpeningMsg ? 'px-3 py-2 rounded-full' : 'px-3 py-2.5 rounded-xl text-left'} transition-all cursor-pointer font-medium shadow-sm hover:shadow active:scale-95 flex items-center group`}
+                                         className={`text-xs bg-white  border border-slate-200  text-slate-700  ${isOpeningMsg ? 'px-3 py-2 rounded-full' : 'px-3 py-2.5 rounded-xl text-left'} transition-all cursor-pointer font-medium shadow-sm  active:scale-95 flex items-center group`}
                                        >
-                                         <span className="opacity-70 mr-2 group-hover:translate-x-1 transition-transform">👉</span>{fu}
+                                         <span className="opacity-70 mr-2 group- transition-transform">👉</span>{fu}
                                        </button>
                                     ))}
                                   </div>
@@ -3050,7 +3054,7 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
                 <div className="flex w-full flex-row items-start">
                   <div className="p-3 bg-white text-slate-700 rounded-2xl shadow-sm border border-slate-100 italic text-[14px] sm:text-[15px] flex items-center space-x-3">
                     <VenicsLogo size={24} animate="loading" vGradient={['#4f46e5', '#818cf8']} />
-                    <span className="font-medium text-slate-600">Venics Assistant anachambua data...</span>
+                    <span className="font-medium text-slate-600">Venics Smart anachambua data...</span>
                     <span className="flex space-x-1 ml-1 items-center">
                       <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></span>
                       <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
@@ -3066,14 +3070,14 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
 
           {/* Suggested strategic & data Chips */}
           <div className="px-4 pb-3 pt-1.5 flex overflow-x-auto gap-2 no-scrollbar shrink-0 bg-slate-50 border-t border-slate-100">
-            <button onClick={() => setInputValue('Ripoti ya upotevu na ulinzi duka letu')} className="whitespace-nowrap text-xs bg-red-50 border border-red-100/50 text-red-700 px-3 py-1.5 rounded-full hover:bg-red-100 font-medium transition-all cursor-pointer">🚨 Mianya ya Upotevu & Ulinzi</button>
-            <button onClick={() => setInputValue('Nifanye nini kukuza mauzo yangu leo?')} className="whitespace-nowrap text-xs bg-emerald-50 border border-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full hover:bg-emerald-100 font-medium transition-all cursor-pointer">🚀 Kukuza Mauzo?</button>
-            <button onClick={() => setInputValue('Makadirio ya bidhaa zilizolala na mtaji uliolala duka letu')} className="whitespace-nowrap text-xs bg-amber-50 border border-amber-100/50 text-amber-700 px-3 py-1.5 rounded-full hover:bg-amber-100 font-medium transition-all cursor-pointer">📦 Mtaji Uliolala (Dead Stock)</button>
-            <button onClick={() => setInputValue('Makadirio ya mauzo yanayopotea kutokana na low stock')} className="whitespace-nowrap text-xs bg-rose-50 border border-rose-100/50 text-rose-700 px-3 py-1.5 rounded-full hover:bg-rose-100 font-medium transition-all cursor-pointer">💸 Mauzo Yanayopotea (Lost Revenue)</button>
-            <button onClick={() => setInputValue('Makadirio ya bajeti ya ununuzi wa mzigo ujao')} className="whitespace-nowrap text-xs bg-blue-50 border border-blue-100/50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 font-medium transition-all cursor-pointer">📋 Kikokotoo cha Mzigo Ujao</button>
-            <button onClick={() => setInputValue('Naomba ripoti ya wafanyakazi wiki hii')} className="whitespace-nowrap text-xs bg-indigo-50 border border-indigo-100/50 text-indigo-700 px-3 py-1.5 rounded-full hover:bg-indigo-100 font-medium transition-all cursor-pointer">👥 Ripoti ya Wafanyakazi</button>
-            <button onClick={() => setInputValue('Mwelekeo wa biashara yangu miezi 6 ijayo?')} className="whitespace-nowrap text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full hover:bg-indigo-100 font-medium transition-all cursor-pointer">🔮 Miezi 6 ijayo?</button>
-            <button onClick={() => setInputValue('Kwanini mauzo/data nikiuza hazionekani kwa mfanyakazi wangu au kuna shida ya sync?')} className="whitespace-nowrap text-xs bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-full hover:bg-slate-200 font-medium transition-all cursor-pointer">🔄 Shida ya Sync</button>
+            <button onClick={() => setInputValue('Ripoti ya upotevu na ulinzi duka letu')} className="whitespace-nowrap text-xs bg-red-50 border border-red-100/50 text-red-700 px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer">🚨 Mianya ya Upotevu & Ulinzi</button>
+            <button onClick={() => setInputValue('Nifanye nini kukuza mauzo yangu leo?')} className="whitespace-nowrap text-xs bg-emerald-50 border border-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer">🚀 Kukuza Mauzo?</button>
+            <button onClick={() => setInputValue('Makadirio ya bidhaa zilizolala na mtaji uliolala duka letu')} className="whitespace-nowrap text-xs bg-amber-50 border border-amber-100/50 text-amber-700 px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer">📦 Mtaji Uliolala (Dead Stock)</button>
+            <button onClick={() => setInputValue('Makadirio ya mauzo yanayopotea kutokana na low stock')} className="whitespace-nowrap text-xs bg-rose-50 border border-rose-100/50 text-rose-700 px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer">💸 Mauzo Yanayopotea (Lost Revenue)</button>
+            <button onClick={() => setInputValue('Makadirio ya bajeti ya ununuzi wa mzigo ujao')} className="whitespace-nowrap text-xs bg-blue-50 border border-blue-100/50 text-blue-700 px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer">📋 Kikokotoo cha Mzigo Ujao</button>
+            <button onClick={() => setInputValue('Naomba ripoti ya wafanyakazi wiki hii')} className="whitespace-nowrap text-xs bg-indigo-50 border border-indigo-100/50 text-indigo-700 px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer">👥 Ripoti ya Wafanyakazi</button>
+            <button onClick={() => setInputValue('Mwelekeo wa biashara yangu miezi 6 ijayo?')} className="whitespace-nowrap text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer">🔮 Miezi 6 ijayo?</button>
+            <button onClick={() => setInputValue('Kwanini mauzo/data nikiuza hazionekani kwa mfanyakazi wangu au kuna shida ya sync?')} className="whitespace-nowrap text-xs bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-full font-medium transition-all cursor-pointer">🔄 Shida ya Sync</button>
           </div>
 
           {/* Input Area with bottom-safe padding for mobile layout */}
@@ -3090,7 +3094,7 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
               <button 
                 type="submit" 
                 disabled={!inputValue.trim() || isTyping}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-full disabled:opacity-50 disabled:bg-gray-300 hover:bg-indigo-700 transition-all shadow-sm cursor-pointer flex items-center justify-center w-7.5 h-7.5"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-full disabled:opacity-50 disabled:bg-gray-300 transition-all shadow-sm cursor-pointer flex items-center justify-center w-7.5 h-7.5"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>

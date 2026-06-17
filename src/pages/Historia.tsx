@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useStore } from '../store';
 import { formatCurrency } from '../utils/format';
+import { getValidStock } from '../utils/stock';
 import { format, startOfDay, startOfWeek, startOfMonth, subMonths, startOfYear, eachDayOfInterval, subDays } from 'date-fns';
 import { Receipt, Calendar, Download, TrendingUp, BarChart3, ArrowUpRight, ArrowDownRight, RotateCcw, AlertCircle, FileText, RefreshCw, Plus, Minus, Trash2, X, Search, ShoppingCart, CheckCircle, Edit2, ShoppingBag, Tag, Wallet } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -51,7 +52,7 @@ const BackdatedInlinePrice = ({ item, currency, onUpdatePrice }: { item: any; cu
         setIsEditing(true);
         setValue(item.sell_price.toString());
       }}
-      className="flex items-center bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-1.5 rounded-xl cursor-pointer active:scale-95 transition-all border border-blue-100"
+      className="flex items-center bg-blue-50 text-blue-700 px-2 py-1.5 rounded-xl cursor-pointer active:scale-95 transition-all border border-blue-100"
     >
       <span className="font-extrabold text-[11px] mr-1">{formatCurrency(item.sell_price, currency)}</span>
       <Edit2 className="w-3 h-3 opacity-50" />
@@ -102,7 +103,7 @@ const BackdatedQtyControl = ({ product, cartItem, updateQty, removeFromCart, sho
             removeFromCart(product.id!);
           }
         }}
-        className="p-1 text-blue-600 hover:bg-blue-100 rounded cursor-pointer"
+        className="p-1 text-blue-600 rounded cursor-pointer relative after:absolute after:content-[''] after:-inset-3"
       >
         <Minus className="w-3 h-3" />
       </button>
@@ -141,7 +142,7 @@ const BackdatedQtyControl = ({ product, cartItem, updateQty, removeFromCart, sho
           updateQty(product.id!, cartItem.qty + 1);
         }}
         disabled={isAtMaxStock}
-        className={`p-1 rounded cursor-pointer ${isAtMaxStock ? 'text-gray-300' : 'text-blue-600 hover:bg-blue-100'}`}
+        className={`p-1 rounded cursor-pointer relative after:absolute after:content-[''] after:-inset-3 ${isAtMaxStock ? 'text-gray-300' : 'text-blue-600 '}`}
       >
         <Plus className="w-3 h-3" />
       </button>
@@ -154,6 +155,8 @@ export default function Historia() {
   const location = useLocation();
   const isAuthenticated = useStore(state => state.isAuthenticated);
   const settings = useLiveQuery(() => db.settings.get(1));
+  const shop = useLiveQuery(() => user?.shopId ? db.shops.get(user.shopId) : Promise.resolve(undefined), [user?.shopId]);
+  const isExpiryEnabled = shop?.enable_expiry === true;
   const currency = settings?.currency || 'TZS';
   const shopName = settings?.shopName || 'Biashara Yangu';
 
@@ -194,14 +197,22 @@ export default function Historia() {
   ) || [];
 
   const sortedProducts = useMemo(() => {
-    return [...allProducts].sort((a, b) => a.name.localeCompare(b.name));
-  }, [allProducts]);
+    return [...allProducts]
+      .map(p => ({
+        ...p,
+        stock: getValidStock(p, isExpiryEnabled)
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allProducts, isExpiryEnabled]);
 
   const backdatedFilteredProducts = useMemo(() => {
     const s = backdatedSearch.toLowerCase();
     return sortedProducts
       .filter(p => {
         if (!p.name) return false;
+        // Strict guard: NEVER show or allow products with 0 or negative stock to appear here or be sold
+        if (p.stock <= 0) return false;
+
         const nameLower = p.name.toLowerCase();
         if (s && !nameLower.includes(s)) return false;
         if (selectedBackdatedLetter) {
@@ -210,7 +221,7 @@ export default function Historia() {
           }
           return nameLower.startsWith(selectedBackdatedLetter.toLowerCase());
         }
-        return p.stock > 0;
+        return true;
       })
       .sort((a, b) => {
         const aName = (a.name || '').toLowerCase();
@@ -271,6 +282,10 @@ export default function Historia() {
 
   const handleAddToBackdatedCart = (product: any) => {
     if (!product) return;
+    if (product.stock <= 0) {
+      showAlert('Taarifa', `Bidhaa ${product.name} haina stoki kwa sasa.`);
+      return;
+    }
     const existing = backdatedSaleCart.find(item => item.id === product.id);
     if (existing) {
       const newQty = existing.qty + 1;
@@ -1086,7 +1101,7 @@ export default function Historia() {
                 setBackdatedCustomerPhone('');
                 setShowBackdatedSaleModal(true);
               }}
-              className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black rounded-2xl text-xs transition-all shadow-sm shadow-blue-500/10 flex items-center justify-center space-x-1.5 cursor-pointer"
+              className="flex-1 py-3 px-4 bg-blue-600 active:scale-95 text-white font-black rounded-2xl text-xs transition-all shadow-sm shadow-blue-500/10 flex items-center justify-center space-x-1.5 cursor-pointer"
             >
               <Plus className="w-4.5 h-4.5" />
               <span>Mauzo</span>
@@ -1098,7 +1113,7 @@ export default function Historia() {
                 setBackdatedExpenseCategory('Mengineyo');
                 setShowBackdatedExpenseModal(true);
               }}
-              className="flex-1 py-3 px-4 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-black rounded-2xl text-xs transition-all shadow-sm shadow-orange-500/10 flex items-center justify-center space-x-1.5 cursor-pointer"
+              className="flex-1 py-3 px-4 bg-orange-600 active:scale-95 text-white font-black rounded-2xl text-xs transition-all shadow-sm shadow-orange-500/10 flex items-center justify-center space-x-1.5 cursor-pointer"
             >
               <Plus className="w-4.5 h-4.5" />
               <span>Matumizi</span>
@@ -1205,7 +1220,7 @@ export default function Historia() {
                       {isAuthenticated && (
                         <button 
                           onClick={() => setReversingSaleId(sale.id)}
-                          className="flex items-center text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded-lg hover:bg-red-100 transition-colors"
+                          className="flex items-center text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded-lg transition-colors"
                         >
                           <RotateCcw className="w-3 h-3 mr-1" /> RUDISHA MAUZO
                         </button>
@@ -1387,7 +1402,7 @@ export default function Historia() {
                         </div>
                         <button 
                           onClick={() => handleLoadReport(report.label)}
-                          className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-600/10 cursor-pointer"
+                          className="bg-blue-600 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-600/10 cursor-pointer"
                         >
                           Tengeneza Ripoti
                         </button>
@@ -1405,7 +1420,7 @@ export default function Historia() {
                             </span>
                             <button 
                               onClick={() => setLoadedReports(prev => ({ ...prev, [report.label]: false }))}
-                              className="text-xs text-red-500 hover:text-red-600 font-bold px-2 py-1 cursor-pointer bg-red-50 rounded-lg hover:bg-red-100 transition-all active:scale-95"
+                              className="text-xs text-red-500 font-bold px-2 py-1 cursor-pointer bg-red-50 rounded-lg transition-all active:scale-95"
                             >
                               Ficha
                             </button>
@@ -1450,7 +1465,7 @@ export default function Historia() {
 
       {/* ================= BACKDATED SALE MODAL ================= */}
       {showBackdatedSaleModal && (
-        <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col text-left overflow-hidden select-none">
+        <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col text-left overflow-hidden select-none pt-safe pt-safe-standalone">
           {backdatedIsCheckout ? (
             <div className="flex items-center px-4 py-3 bg-white border-b border-gray-150">
               <button 
@@ -1483,7 +1498,7 @@ export default function Historia() {
                     setBackdatedIsCartMode(false);
                     setBackdatedIsCheckout(false);
                   }}
-                  className="p-1 px-2.5 text-red-500 font-black hover:bg-red-50 rounded-xl text-xs active:scale-95 transition-all flex items-center space-x-1 cursor-pointer"
+                  className="p-1 px-2.5 text-red-500 font-black rounded-xl text-xs active:scale-95 transition-all flex items-center space-x-1 cursor-pointer"
                 >
                   <X className="w-4.5 h-4.5" />
                   <span>Funga</span>
@@ -1606,7 +1621,7 @@ export default function Historia() {
                               type="button"
                               key={c}
                               onMouseDown={() => handleSelectBackdatedCustomer(c)}
-                              className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-0 text-xs font-bold text-gray-700 cursor-pointer"
+                              className="w-full text-left p-3 border-b border-gray-100 last:border-0 text-xs font-bold text-gray-700 cursor-pointer"
                             >
                               {c}
                             </button>
@@ -1633,7 +1648,7 @@ export default function Historia() {
                   type="button"
                   onClick={() => handleCompleteBackdatedSale()}
                   disabled={isSubmittingBackdated || (backdatedPaymentMethod === 'credit' && !backdatedCustomerName)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:bg-gray-400 text-white font-black py-4 rounded-xl shadow-lg text-sm flex items-center justify-center space-x-2 cursor-pointer transition-all"
+                  className="w-full bg-blue-600 active:scale-95 disabled:bg-gray-400 text-white font-black py-4 rounded-xl shadow-lg text-sm flex items-center justify-center space-x-2 cursor-pointer transition-all"
                 >
                   {isSubmittingBackdated ? (
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -1666,7 +1681,7 @@ export default function Historia() {
                               <button 
                                 type="button"
                                 onClick={() => handleRemoveFromBackdatedCart(item.id)} 
-                                className="text-red-400 p-2 rounded-xl hover:bg-red-50 cursor-pointer active:scale-90"
+                                className="text-red-400 p-2 rounded-xl cursor-pointer active:scale-90"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -1706,6 +1721,10 @@ export default function Historia() {
                             <div 
                               className="min-w-0 cursor-pointer flex-1"
                               onClick={() => {
+                                if (product.stock <= 0) {
+                                  showAlert('Taarifa', `Bidhaa ${product.name} haina stoki kwa sasa.`);
+                                  return;
+                                }
                                 if (isAtMaxStock) {
                                   showAlert('Taarifa', `Umeshafikia kikomo cha stock kwa ${product.name}`);
                                   return;
@@ -1773,7 +1792,7 @@ export default function Historia() {
                           setBackdatedSaleCart([]);
                           setBackdatedIsCartMode(false);
                         }}
-                        className="text-gray-400 hover:text-white p-2 transition-colors cursor-pointer"
+                        className="text-gray-400 p-2 transition-colors cursor-pointer"
                         title="Safi Kikapu"
                       >
                         <Plus className="w-6 h-6 rotate-45" />
@@ -1785,7 +1804,7 @@ export default function Historia() {
                       <button 
                         type="button"
                         onClick={() => setBackdatedIsCartMode(!backdatedIsCartMode)}
-                        className={`${backdatedIsCartMode ? 'bg-blue-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'} py-3.5 rounded-2xl font-bold text-xs transition-all active:scale-95 cursor-pointer`}
+                        className={`${backdatedIsCartMode ? 'bg-blue-600 text-white' : 'bg-white/10  text-white'} py-3.5 rounded-2xl font-bold text-xs transition-all active:scale-95 cursor-pointer`}
                       >
                         {backdatedIsCartMode ? 'Bidhaa' : 'Punguzo'}
                       </button>
@@ -1795,14 +1814,14 @@ export default function Historia() {
                           setBackdatedPaymentMethod('credit');
                           setBackdatedIsCheckout(true);
                         }}
-                        className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 py-3.5 rounded-2xl font-bold text-xs border border-orange-500/30 transition-all active:scale-95 cursor-pointer text-center"
+                        className="bg-orange-500/20 text-orange-400 py-3.5 rounded-2xl font-bold text-xs border border-orange-500/30 transition-all active:scale-95 cursor-pointer text-center"
                       >
                         Mkopo
                       </button>
                       <button 
                         type="button"
                         onClick={() => handleCompleteBackdatedSale('cash')}
-                        className="bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-2xl font-black text-xs shadow-lg shadow-green-900/20 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                        className="bg-green-600 text-white py-3.5 rounded-2xl font-black text-xs shadow-lg shadow-green-900/20 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
                       >
                         <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                         Uza
@@ -1834,7 +1853,7 @@ export default function Historia() {
               </div>
               <button 
                 onClick={() => setShowBackdatedExpenseModal(false)}
-                className="p-1.5 rounded-lg bg-gray-50 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors active:scale-95"
+                className="p-1.5 rounded-lg bg-gray-50 text-gray-400 cursor-pointer transition-colors active:scale-95"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1921,7 +1940,7 @@ export default function Historia() {
                 type="button"
                 onClick={() => setShowBackdatedExpenseModal(false)}
                 disabled={isSubmittingBackdated}
-                className="px-5 py-3 bg-gray-50 font-bold rounded-xl text-xs text-gray-600 hover:bg-gray-100 cursor-pointer text-center transition-colors active:scale-95"
+                className="px-5 py-3 bg-gray-50 font-bold rounded-xl text-xs text-gray-600 cursor-pointer text-center transition-colors active:scale-95"
               >
                 Ghairi
               </button>
@@ -1929,7 +1948,7 @@ export default function Historia() {
                 type="button"
                 onClick={handleSaveBackdatedExpense}
                 disabled={isSubmittingBackdated || !backdatedExpenseAmount}
-                className="px-6 py-3 bg-orange-600 hover:bg-orange-700 active:scale-95 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-orange-500/10 cursor-pointer transition-all"
+                className="px-6 py-3 bg-orange-600 active:scale-95 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-orange-500/10 cursor-pointer transition-all"
               >
                 {isSubmittingBackdated ? (
                   <>

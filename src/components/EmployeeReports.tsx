@@ -353,7 +353,7 @@ export default function EmployeeReports({ onClose }: { onClose: () => void }) {
         <div className="bg-white px-4 py-4 flex items-center border-b border-gray-100 shadow-sm shrink-0">
           <button 
             onClick={() => setSelectedEmployeeId(null)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-2"
+            className="p-2 rounded-full transition-colors mr-2"
           >
             <ArrowLeft className="w-6 h-6 text-gray-700" />
           </button>
@@ -367,25 +367,25 @@ export default function EmployeeReports({ onClose }: { onClose: () => void }) {
           <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide -mx-4 px-4">
             <button
               onClick={() => setFilterPeriod('this_week')}
-              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterPeriod === 'this_week' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'}`}
+              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterPeriod === 'this_week' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-100 '}`}
             >
               Wiki Hii
             </button>
             <button
               onClick={() => setFilterPeriod('this_month')}
-              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterPeriod === 'this_month' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'}`}
+              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterPeriod === 'this_month' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-100 '}`}
             >
               Mwezi Huu
             </button>
             <button
               onClick={() => setFilterPeriod('last_month')}
-              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterPeriod === 'last_month' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'}`}
+              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterPeriod === 'last_month' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-100 '}`}
             >
               Mwezi Uliopita
             </button>
             <button
               onClick={() => setFilterPeriod('all_time')}
-              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterPeriod === 'all_time' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'}`}
+              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterPeriod === 'all_time' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-100 '}`}
             >
               Wakati Wote
             </button>
@@ -525,7 +525,7 @@ export default function EmployeeReports({ onClose }: { onClose: () => void }) {
                   <div className="mt-4 pt-3 border-t border-gray-100">
                     <button
                       onClick={() => toggleShiftExpand(shift.id)}
-                      className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-2xl text-xs font-black transition-colors"
+                      className="w-full flex items-center justify-between p-3 bg-slate-50 text-slate-800 rounded-2xl text-xs font-black transition-colors"
                     >
                       <span className="flex items-center">
                         <Wallet className="w-4 h-4 mr-2 text-blue-600" />
@@ -706,7 +706,7 @@ export default function EmployeeReports({ onClose }: { onClose: () => void }) {
       <div className="bg-white px-4 py-4 flex items-center border-b border-gray-100 shadow-sm shrink-0">
         <button 
           onClick={onClose}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-2"
+          className="p-2 rounded-full transition-colors mr-2"
         >
           <ArrowLeft className="w-6 h-6 text-gray-700" />
         </button>
@@ -788,7 +788,7 @@ export default function EmployeeReports({ onClose }: { onClose: () => void }) {
             >
               <button
                 onClick={() => setSelectedEmployeeId(emp.id)}
-                className="w-full bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 flex items-center justify-between text-left hover:border-blue-200 transition-colors"
+                className="w-full bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 flex items-center justify-between text-left transition-colors"
               >
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-bold text-lg mr-4 pb-0.5">

@@ -269,21 +269,21 @@ export default function Madeni() {
                 <div className="flex flex-wrap sm:flex-nowrap gap-2 pt-3 border-t border-gray-100">
                   <button 
                     onClick={() => setSelectedDebt(debt)}
-                    className="flex-1 min-w-[80px] flex items-center justify-center text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 py-2.5 rounded-xl transition-all"
+                    className="flex-1 min-w-[80px] flex items-center justify-center text-[11px] font-bold text-blue-600 bg-blue-50 py-2.5 rounded-xl transition-all"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" />
                     Lipa Kidogo
                   </button>
                   <button 
                     onClick={() => handleFullPayment(debt)}
-                    className="flex-1 min-w-[80px] flex items-center justify-center text-[11px] font-bold text-green-600 bg-green-50 hover:bg-green-100 py-2.5 rounded-xl transition-all"
+                    className="flex-1 min-w-[80px] flex items-center justify-center text-[11px] font-bold text-green-600 bg-green-50 py-2.5 rounded-xl transition-all"
                   >
                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
                     Lipa Zote
                   </button>
                   <button 
                     onClick={() => openWhatsAppModal(debt, remaining)}
-                    className="flex-1 min-w-[130px] flex items-center justify-center text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 py-2.5 rounded-xl border border-emerald-100 transition-all shadow-sm"
+                    className="flex-1 min-w-[130px] flex items-center justify-center text-[11px] font-bold text-emerald-700 bg-emerald-50 py-2.5 rounded-xl border border-emerald-100 transition-all shadow-sm"
                   >
                     <span className="mr-1 text-[13px]">💬</span>
                     Kumbusha WhatsApp
@@ -361,7 +361,7 @@ export default function Madeni() {
               </div>
               <button 
                 onClick={() => setWhatsappDebt(null)} 
-                className="p-1 px-2.5 py-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-full text-sm font-bold"
+                className="p-1 px-2.5 py-1.5 text-slate-400 rounded-full text-sm font-bold"
               >
                 ✕
               </button>
@@ -407,14 +407,14 @@ export default function Madeni() {
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <button 
                   onClick={() => setWhatsappDebt(null)}
-                  className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs"
+                  className="py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs"
                 >
                   Ghairi
                 </button>
                 <button 
                   onClick={executeWhatsAppSend}
                   disabled={!whatsappPhone.trim() || !customMessage.trim()}
-                  className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-100 flex items-center justify-center space-x-1 disabled:opacity-50 transition-all cursor-pointer"
+                  className="py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-100 flex items-center justify-center space-x-1 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   <span>Tuma WhatsApp</span>
                   <span>🚀</span>

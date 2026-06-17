@@ -11,6 +11,7 @@ import { SyncService } from '../services/sync';
 import { LicenseService } from '../services/license';
 import { v4 as uuidv4 } from 'uuid';
 import { getValidStock, getSales30DaysVelocityMap, getDynamicThreshold } from '../utils/stock';
+import VenicsLogo from '../components/VenicsLogo';
 
 export default function Dashibodi() {
   const { user, showAlert, showToast, isBoss, isFeatureEnabled } = useStore();
@@ -236,15 +237,18 @@ export default function Dashibodi() {
 
   return (
     <div className="p-4 space-y-6">
-      <header className="flex justify-between items-start mb-6">
+      <header className="flex justify-between items-start mb-6 w-full">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">{settings?.shopName || 'Venics Sales'}</h1>
+          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2.5 tracking-tight">
+            <VenicsLogo size={32} animate="loading" outerGradient={['#1e3a8a', '#06b6d4']} innerGradient={['#10b981', '#3b82f6']} className="shrink-0" />
+            <span>{settings?.shopName || 'Venics Sales'}</span>
+          </h1>
           <div className="flex flex-col space-y-1 mt-1">
             {license ? (
               <>
                 <div 
                   onClick={handleLicenseSync}
-                  className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium w-fit cursor-pointer hover:opacity-80 transition-opacity active:scale-[0.98] select-none ${daysRemaining > 5 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
+                  className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium w-fit cursor-pointer  transition-opacity active:scale-[0.98] select-none ${daysRemaining > 5 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
                 >
                   {isSyncingLicense ? (
                     <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
@@ -253,10 +257,10 @@ export default function Dashibodi() {
                   ) : (
                     <AlertTriangle className="w-3 h-3 mr-1" />
                   )}
-                  Siku {daysRemaining} zimebaki (Matumizi)
+                  Siku {daysRemaining} zimebaki.
                 </div>
                 {daysRemaining <= 5 && (
-                  <a href="tel:0787979273" className="inline-flex mt-1 items-center px-3 py-1.5 rounded-full text-xs font-bold bg-green-500 text-white w-fit shadow-sm hover:bg-green-600 active:scale-95 transition-all">
+                  <a href="tel:0787979273" className="inline-flex mt-1 items-center px-3 py-1.5 rounded-full text-xs font-bold bg-green-500 text-white w-fit shadow-sm active:scale-95 transition-all">
                     <Phone className="w-3.5 h-3.5 mr-1.5" />
                     Bonyeza hapa kupiga simu kulipia
                   </a>
@@ -446,7 +450,7 @@ export default function Dashibodi() {
           {lowStockProducts.length > 0 && (
             <div 
               onClick={() => setShowLowStockModal(true)}
-              className="p-3 bg-red-50 rounded-xl border border-red-100 flex items-start space-x-3 cursor-pointer hover:bg-red-100 transition-colors"
+              className="p-3 bg-red-50 rounded-xl border border-red-100 flex items-start space-x-3 cursor-pointer transition-colors"
             >
               <AlertTriangle className="text-red-500 w-5 h-5 shrink-0 mt-0.5" />
               <div>
@@ -461,7 +465,7 @@ export default function Dashibodi() {
           {isExpiryEnabled && expiredBatchesCount > 0 && (
             <div 
               onClick={() => navigate('/zaidi', { state: { openExpiryList: true } })}
-              className="p-3 bg-red-100 rounded-xl border border-red-200 flex items-start space-x-3 cursor-pointer hover:bg-red-200 transition-colors"
+              className="p-3 bg-red-100 rounded-xl border border-red-200 flex items-start space-x-3 cursor-pointer transition-colors"
             >
               <Clock className="text-red-600 w-5 h-5 shrink-0 mt-0.5" />
               <div>
@@ -476,7 +480,7 @@ export default function Dashibodi() {
           {isExpiryEnabled && expiringSoonBatchesCount > 0 && (
             <div 
               onClick={() => navigate('/zaidi', { state: { openExpiryList: true } })}
-              className="p-3 bg-orange-50 rounded-xl border border-orange-100 flex items-start space-x-3 cursor-pointer hover:bg-orange-100 transition-colors"
+              className="p-3 bg-orange-50 rounded-xl border border-orange-100 flex items-start space-x-3 cursor-pointer transition-colors"
             >
               <Clock className="text-orange-500 w-5 h-5 shrink-0 mt-0.5" />
               <div>

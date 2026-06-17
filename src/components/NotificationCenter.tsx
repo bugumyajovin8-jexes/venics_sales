@@ -115,7 +115,7 @@ export default function NotificationCenter() {
                   </span>
                   <button
                     onClick={() => dismissNotification(activeNotification.id)}
-                    className="p-1 hover:bg-black/5 rounded-full text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                    className="p-1 rounded-full text-slate-400 transition-colors cursor-pointer"
                     title="Ondoa"
                   >
                     <X className="w-4 h-4" />
@@ -135,20 +135,20 @@ export default function NotificationCenter() {
               <div className="px-4 pb-4 pt-1 flex items-center justify-end gap-2 bg-slate-50 border-t border-slate-100">
                 <button
                   onClick={() => dismissNotification(activeNotification.id)}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+                  className="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
                 >
                   Ondoa
                 </button>
                 <button
                   onClick={() => handleSeeMore(activeNotification.page, activeNotification.id)}
-                  className="text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl transition-all flex items-center space-x-1 cursor-pointer shadow-sm active:scale-95"
+                  className="text-xs font-bold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl transition-all flex items-center space-x-1 cursor-pointer shadow-sm active:scale-95"
                 >
                   <span>Mengi zaidi</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleReply(activeNotification.chatPrompt, activeNotification.id)}
-                  className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-1.5 rounded-xl transition-all flex items-center space-x-1 cursor-pointer shadow-md active:scale-95"
+                  className="text-xs font-bold text-white bg-indigo-600 px-3.5 py-1.5 rounded-xl transition-all flex items-center space-x-1 cursor-pointer shadow-md active:scale-95"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>Chat</span>
@@ -166,8 +166,8 @@ export default function NotificationCenter() {
           onClick={() => setIsOpen(!isOpen)}
           className={`relative flex items-center justify-center p-3 rounded-full shadow-lg border cursor-pointer transition-all duration-300 ${
             hasUnread 
-              ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 focus:ring-4 focus:ring-amber-300 animate-pulse' 
-              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:text-gray-900 focus:ring-4 focus:ring-gray-100'
+              ? 'bg-amber-500 text-white border-amber-600  focus:ring-4 focus:ring-amber-300 animate-pulse' 
+              : 'bg-white text-gray-700 border-gray-200   focus:ring-4 focus:ring-gray-100'
           }`}
         >
           {hasUnread ? (
@@ -201,7 +201,7 @@ export default function NotificationCenter() {
                 {hasUnread && (
                   <button 
                     onClick={() => clearNotificationList()}
-                    className="text-xs text-indigo-200 hover:text-white font-medium bg-white/10 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+                    className="text-xs text-indigo-200 font-medium bg-white/10 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
                   >
                     Soma Zote
                   </button>
@@ -227,7 +227,7 @@ export default function NotificationCenter() {
                         key={notification.id}
                         className={`relative p-3.5 border rounded-xl shadow-sm transition-all flex flex-col bg-white outline-none ${
                           notification.isRead 
-                            ? 'opacity-65 border-slate-100 hover:bg-slate-50/30' 
+                            ? 'opacity-65 border-slate-100 ' 
                             : isCritical
                               ? 'border-l-4 border-l-rose-500 border-rose-100 bg-rose-50/15'
                               : isWarning
@@ -261,7 +261,7 @@ export default function NotificationCenter() {
 
                           <button 
                             onClick={() => dismissNotification(notification.id)}
-                            className="text-gray-400 hover:text-gray-600 hover:bg-slate-100 p-1 rounded-full leading-none transition-colors"
+                            className="text-gray-400 p-1 rounded-full leading-none transition-colors"
                             title="Futa arifa hii"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -275,20 +275,20 @@ export default function NotificationCenter() {
                         <div className="flex border-t border-slate-100 mt-2.5 pt-2 items-center justify-end gap-1.5">
                           <button
                             onClick={() => dismissNotification(notification.id)}
-                            className="text-[10.5px] font-bold text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 rounded transition-all cursor-pointer"
+                            className="text-[10.5px] font-bold text-gray-500 bg-gray-50 px-2.5 py-1 rounded transition-all cursor-pointer"
                           >
                             Ondoa
                           </button>
                           <button
                             onClick={() => handleSeeMore(notification.page, notification.id)}
-                            className="text-[10.5px] font-bold text-indigo-600 hover:bg-indigo-50 px-2.5 py-1 rounded transition-all flex items-center space-x-0.5 cursor-pointer animate-none"
+                            className="text-[10.5px] font-bold text-indigo-600 px-2.5 py-1 rounded transition-all flex items-center space-x-0.5 cursor-pointer animate-none"
                           >
                             <span>See More</span>
                             <ArrowRight className="w-3 h-3" />
                           </button>
                           <button
                             onClick={() => handleReply(notification.chatPrompt, notification.id)}
-                            className="text-[10.5px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-2.5 py-1 rounded transition-all flex items-center space-x-0.5 shadow-sm cursor-pointer animate-none"
+                            className="text-[10.5px] font-bold text-white bg-indigo-600 px-2.5 py-1 rounded transition-all flex items-center space-x-0.5 shadow-sm cursor-pointer animate-none"
                           >
                             <MessageSquare className="w-3 h-3" />
                             <span>Reply</span>

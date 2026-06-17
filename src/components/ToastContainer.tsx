@@ -30,7 +30,7 @@ export default function ToastContainer() {
             <p className="text-sm font-bold flex-1">{toast.message}</p>
             <button 
               onClick={() => removeToast(toast.id)}
-              className="ml-3 p-1 hover:bg-black/5 rounded-full transition-colors"
+              className="ml-3 p-1 rounded-full transition-colors"
             >
               <X className="w-4 h-4 opacity-50" />
             </button>

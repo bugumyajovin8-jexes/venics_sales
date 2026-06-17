@@ -527,7 +527,7 @@ export default function Zaidi() {
                 setNewName(user?.name || '');
                 setShowProfileModal(true);
               }}
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+              className="p-2 text-blue-600 rounded-xl transition-colors"
             >
               <Settings className="w-5 h-5" />
             </button>
@@ -632,7 +632,7 @@ export default function Zaidi() {
               </div>
               <button 
                 onClick={() => setShowInviteModal(true)}
-                className="p-2 bg-green-600 text-white rounded-xl shadow-md hover:bg-green-700 transition-colors flex items-center space-x-1"
+                className="p-2 bg-green-600 text-white rounded-xl shadow-md transition-colors flex items-center space-x-1"
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-xs font-bold">Ongeza</span>
@@ -733,13 +733,13 @@ export default function Zaidi() {
                           setStaffRole(s.role as any);
                           setShowStaffModal(true);
                         }}
-                        className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"
+                        className="p-2 text-blue-500 rounded-lg"
                       >
                         <Settings className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleToggleBlockStaff(s.id, s.name, s.status)}
-                        className={`p-2 rounded-lg ${isBlocked ? 'text-green-600 hover:bg-green-50' : 'text-red-500 hover:bg-red-50'}`}
+                        className={`p-2 rounded-lg ${isBlocked ? 'text-green-600 ' : 'text-red-500 '}`}
                         title={isBlocked ? 'Fungulia Mfanyakazi' : 'Zuia Mfanyakazi'}
                       >
                         {isBlocked ? <CheckCircle className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
@@ -928,7 +928,7 @@ export default function Zaidi() {
                   }
                 }}
                 disabled={isSyncing}
-                className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-sm transition-all active:scale-95 ${isSyncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-amber-600 text-white hover:bg-amber-700'}`}
+                className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-sm transition-all active:scale-95 ${isSyncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-amber-600 text-white '}`}
               >
                 {isSyncing ? (
                   <>
@@ -1042,7 +1042,7 @@ export default function Zaidi() {
                               </div>
                               <button 
                                 onClick={() => handleRemoveBatch(item.id, item.batch.id)}
-                                className="w-full py-2.5 bg-white text-red-600 border border-red-200 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-red-100 transition-colors"
+                                className="w-full py-2.5 bg-white text-red-600 border border-red-200 rounded-xl text-sm font-bold flex items-center justify-center transition-colors"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" /> Ondoa Bidhaa Hii
                               </button>
@@ -1135,7 +1135,7 @@ export default function Zaidi() {
                   className={`w-full p-4 text-left font-bold rounded-2xl transition-all border-2 ${
                     selectedDeletePeriod === p.value 
                       ? 'bg-red-50 border-red-500 text-red-700 shadow-sm' 
-                      : 'bg-gray-50 border-transparent text-gray-700 hover:bg-gray-100'
+                      : 'bg-gray-50 border-transparent text-gray-700 '
                   }`}
                 >
                   <div className="flex justify-between items-center">

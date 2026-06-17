@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { Lock, Eye, EyeOff, CheckCircle, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import VenicsLogo from '../components/VenicsLogo';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -64,8 +65,8 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-8 rounded-3xl shadow-lg w-full max-w-sm text-center">
-        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Lock className="w-8 h-8" />
+        <div className="mb-6 flex justify-center">
+          <VenicsLogo size={80} animate={loading ? "loading" : "idle"} outerGradient={['#1e3a8a', '#06b6d4']} innerGradient={['#0891b2', '#1e40af']} />
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Badili Nenosiri</h1>
         <p className="text-gray-500 mb-8 text-sm">Ingiza nenosiri lako jipya hapa chini.</p>
@@ -100,7 +101,7 @@ export default function ResetPassword() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>

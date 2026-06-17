@@ -112,7 +112,7 @@ export default function StockAuditModal({ isOpen, onClose, products, onSuccess }
             <h2 className="text-xl font-bold text-gray-900">AI Stock Audit</h2>
             <p className="text-sm text-gray-500">Kagua idadi ya bidhaa rafu kwa kutumia picha</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 rounded-full transition-colors">
             <X className="w-6 h-6 text-gray-500" />
           </button>
         </div>
@@ -130,9 +130,9 @@ export default function StockAuditModal({ isOpen, onClose, products, onSuccess }
               <div className="grid grid-cols-2 gap-4">
                 <div 
                   onClick={() => cameraInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-orange-300 transition-all cursor-pointer group"
+                  className="border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center bg-gray-50 transition-all cursor-pointer group"
                 >
-                  <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110">
+                  <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mb-4 group-">
                     <Camera className="w-8 h-8" />
                   </div>
                   <p className="font-bold text-gray-900">Piga Picha Rafu</p>
@@ -141,9 +141,9 @@ export default function StockAuditModal({ isOpen, onClose, products, onSuccess }
 
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-blue-300 transition-all cursor-pointer group"
+                  className="border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center bg-gray-50 transition-all cursor-pointer group"
                 >
-                  <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110">
+                  <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-">
                     <Upload className="w-8 h-8" />
                   </div>
                   <p className="font-bold text-gray-900">Pakia Picha</p>
@@ -174,7 +174,7 @@ export default function StockAuditModal({ isOpen, onClose, products, onSuccess }
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Matokeo ya Ukaguzi</h3>
-                 <button onClick={() => setStep('upload')} className="text-xs text-orange-600 font-bold hover:underline">Piga picha upya</button>
+                 <button onClick={() => setStep('upload')} className="text-xs text-orange-600 font-bold">Piga picha upya</button>
               </div>
 
               <div className="space-y-3">
@@ -217,7 +217,7 @@ export default function StockAuditModal({ isOpen, onClose, products, onSuccess }
           <div className="p-6 border-t border-gray-100 bg-white sticky bottom-0">
             <button 
               onClick={handleApplyAudit}
-              className="w-full bg-orange-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-orange-100 hover:bg-orange-700 transition-all flex items-center justify-center"
+              className="w-full bg-orange-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-orange-100 transition-all flex items-center justify-center"
             >
               <Check className="w-5 h-5 mr-2" /> Idhinisha na Rekebisha Stock
             </button>
