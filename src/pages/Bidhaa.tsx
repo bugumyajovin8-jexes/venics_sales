@@ -645,7 +645,8 @@ export default function Bidhaa() {
           </div>
           <button 
             onClick={() => setIsAdding(true)}
-            className="bg-blue-600 text-white p-2.5 rounded-full shadow-lg transition-all shrink-0 ml-1 active:scale-95"
+            className="bg-blue-600 text-white p-2.5 rounded-full shadow-lg transition-all shrink-0 ml-1 active:scale-95 cursor-pointer touch-manipulation select-none"
+            title="Sajili Bidhaa Mpya"
           >
             <Plus className="w-6 h-6" />
           </button>
