@@ -670,6 +670,7 @@ export class SyncService {
 
     delete mapped.synced;
     delete mapped.stock_delta;
+    delete mapped.pricing_verified;
 
     if (tableName === 'assistant_chats') {
       mapped.is_unresolved = data.is_unresolved === 1;

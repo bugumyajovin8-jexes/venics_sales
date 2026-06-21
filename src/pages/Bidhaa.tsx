@@ -56,6 +56,7 @@ export default function Bidhaa() {
   const [stockToAdd, setStockToAdd] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [isLossModalOpen, setIsLossModalOpen] = useState(false);
+  const [guardrailWarning, setGuardrailWarning] = useState<{ buy: number; sell: number; name: string; onConfirm: () => Promise<void> } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [listHeight, setListHeight] = useState(500);
@@ -107,6 +108,7 @@ export default function Bidhaa() {
     e.preventDefault();
     try {
       const formData = new FormData(e.currentTarget);
+      const name = formData.get('name') as string;
       const stock = parseInputNumber(formStock);
       const notifyDays = parseInputNumber(formNotifyDays);
       
@@ -142,7 +144,7 @@ export default function Bidhaa() {
       const product: Product = {
         id: editingProduct?.id || uuidv4(),
         shop_id: user?.shopId || '',
-        name: formData.get('name') as string,
+        name: name,
         buy_price: rawBuyPrice,
         sell_price: rawSellPrice,
         stock: stock,
@@ -167,66 +169,81 @@ export default function Bidhaa() {
         }];
       }
 
-      await db.products.put(product);
-      
-      // Log action
-      if (editingProduct) {
-        const changes: any = {};
-        if (product.sell_price !== editingProduct.sell_price) {
-          changes.sell_price = { old: editingProduct.sell_price, new: rawSellPrice };
-        }
-        if (product.buy_price !== editingProduct.buy_price) {
-          changes.buy_price = { old: editingProduct.buy_price, new: rawBuyPrice };
-        }
-        if (product.stock !== editingProduct.stock) {
-          changes.stock = { old: editingProduct.stock, new: product.stock };
-          
-          if (product.stock < editingProduct.stock) {
-            SyncService.logAction('anomaly_stock_reduction', {
-              product_id: product.id,
-              name: product.name,
-              old_stock: editingProduct.stock,
-              new_stock: product.stock,
-              reduction: editingProduct.stock - product.stock,
-              employee_name: user?.name || 'Mhudumu',
-              warning: `Amepunguza kiwango cha bidhaa hii stoo (${editingProduct.stock - product.stock} zilizopungua) bila kusajili mauzo ya kawaida kwenye mfumo.`
-            });
+      const executeSave = async () => {
+        await db.products.put(product);
+        
+        // Log action
+        if (editingProduct) {
+          const changes: any = {};
+          if (product.sell_price !== editingProduct.sell_price) {
+            changes.sell_price = { old: editingProduct.sell_price, new: rawSellPrice };
           }
-        }
-        if (product.name !== editingProduct.name) {
-          changes.name = { old: editingProduct.name, new: product.name };
-        }
-        if (product.notify_expiry_days !== editingProduct.notify_expiry_days) {
-          changes.notify_expiry_days = { old: editingProduct.notify_expiry_days || 'N/A', new: product.notify_expiry_days || 'N/A' };
-        }
+          if (product.buy_price !== editingProduct.buy_price) {
+            changes.buy_price = { old: editingProduct.buy_price, new: rawBuyPrice };
+          }
+          if (product.stock !== editingProduct.stock) {
+            changes.stock = { old: editingProduct.stock, new: product.stock };
+            
+            if (product.stock < editingProduct.stock) {
+              SyncService.logAction('anomaly_stock_reduction', {
+                product_id: product.id,
+                name: product.name,
+                old_stock: editingProduct.stock,
+                new_stock: product.stock,
+                reduction: editingProduct.stock - product.stock,
+                employee_name: user?.name || 'Mhudumu',
+                warning: `Amepunguza kiwango cha bidhaa hii stoo (${editingProduct.stock - product.stock} zilizopungua) bila kusajili mauzo ya kawaida kwenye mfumo.`
+              });
+            }
+          }
+          if (product.name !== editingProduct.name) {
+            changes.name = { old: editingProduct.name, new: product.name };
+          }
+          if (product.notify_expiry_days !== editingProduct.notify_expiry_days) {
+            changes.notify_expiry_days = { old: editingProduct.notify_expiry_days || 'N/A', new: product.notify_expiry_days || 'N/A' };
+          }
 
-        SyncService.logAction('edit_product', { 
-          product_id: product.id, 
-          name: product.name,
-          changes
+          SyncService.logAction('edit_product', { 
+            product_id: product.id, 
+            name: product.name,
+            changes
+          });
+        } else {
+          SyncService.logAction('add_product', { 
+            product_id: product.id, 
+            name: product.name,
+            stock: product.stock,
+            sell_price: rawSellPrice,
+            buy_price: rawBuyPrice
+          });
+        }
+        
+        setIsAdding(false);
+        setEditingProduct(null);
+        setFormBuyPrice('');
+        setFormSellPrice('');
+        setFormStock('');
+        setFormLowStock('5');
+        setFormExpiryDate('');
+        setFormNotifyDays('30');
+        setGuardrailWarning(null);
+        SyncService.sync();
+      };
+
+      const ratio = rawBuyPrice > 0 ? (rawSellPrice / rawBuyPrice) : 1;
+      if (rawBuyPrice > 0 && (ratio > 5 || ratio < 1)) {
+        setGuardrailWarning({
+          buy: rawBuyPrice,
+          sell: rawSellPrice,
+          name: name,
+          onConfirm: executeSave
         });
-      } else {
-        SyncService.logAction('add_product', { 
-          product_id: product.id, 
-          name: product.name,
-          stock: product.stock,
-          sell_price: rawSellPrice,
-          buy_price: rawBuyPrice
-        });
+        return;
       }
-      
-      setIsAdding(false);
-      setEditingProduct(null);
-      setFormBuyPrice('');
-      setFormSellPrice('');
-      setFormStock('');
-      setFormLowStock('5');
-      setFormExpiryDate('');
-      setFormNotifyDays('30');
-      SyncService.sync();
+
+      await executeSave();
     } catch (err) {
       console.error('Save product error:', err);
-      // Use a non-blocking alert or just log it
     }
   };
 
@@ -444,18 +461,35 @@ export default function Bidhaa() {
         isDeleted: 0
       };
 
-      await db.products.put(product);
-      SyncService.logAction('add_product', { 
-        product_id: product.id, 
-        name: product.name,
-        stock: product.stock,
-        sell_price: product.sell_price,
-        buy_price: product.buy_price
-      });
-      
-      SyncService.sync();
-      setQuickAddText('');
-      showToast(`Biashara "${name}" imeongezwa!`, 'success');
+      const executeQuickAdd = async () => {
+        await db.products.put(product);
+        SyncService.logAction('add_product', { 
+          product_id: product.id, 
+          name: product.name,
+          stock: product.stock,
+          sell_price: product.sell_price,
+          buy_price: product.buy_price
+        });
+        
+        SyncService.sync();
+        setQuickAddText('');
+        showToast(`Biashara "${name}" imeongezwa!`, 'success');
+        setGuardrailWarning(null);
+      };
+
+      const ratio = buyPrice > 0 ? (sellPrice / buyPrice) : 1;
+      if (buyPrice > 0 && (ratio > 5 || ratio < 1)) {
+        setGuardrailWarning({
+          buy: buyPrice,
+          sell: sellPrice,
+          name: name,
+          onConfirm: executeQuickAdd
+        });
+        setIsProcessingQuickAdd(false);
+        return;
+      }
+
+      await executeQuickAdd();
     } catch (err: any) {
       showToast(err.message || 'Kuna tatizo wakati wa kuongeza bidhaa', 'error');
     } finally {
@@ -588,6 +622,46 @@ export default function Bidhaa() {
             Hifadhi Bidhaa
           </button>
         </form>
+
+        {/* Pricing guardrail warning modal specifically for the addition/editing overlay */}
+        {guardrailWarning && (
+          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200 shadow-2xl overflow-hidden">
+              <div className="p-4 border-b border-gray-100 flex items-center bg-orange-50">
+                <AlertCircle className="w-6 h-6 text-orange-500 mr-2 animate-bounce flex-shrink-0" />
+                <h2 className="text-lg font-bold text-orange-700 font-sans">Uhakiki wa Bei</h2>
+              </div>
+              
+              <div className="p-5 text-gray-700 space-y-3 font-sans">
+                <p className="font-semibold text-gray-800 text-sm">
+                  Bidhaa: <span className="text-blue-600">[{guardrailWarning.name}]</span>
+                </p>
+                <p className="text-sm leading-relaxed">
+                  Umeingiza bei ya kununulia <span className="font-bold text-gray-900">TZS {guardrailWarning.buy.toLocaleString()}</span> na kuuza <span className="font-bold text-gray-900">TZS {guardrailWarning.sell.toLocaleString()}</span>. Je, una uhakika takwimu hizi ni sahihi?
+                </p>
+              </div>
+              
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex space-x-3">
+                <button 
+                  type="button"
+                  onClick={() => setGuardrailWarning(null)}
+                  className="flex-1 py-3 bg-gray-200 text-gray-800 font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"
+                >
+                  Hapana, Rekebisha
+                </button>
+                <button 
+                  type="button"
+                  onClick={async () => {
+                    await guardrailWarning.onConfirm();
+                  }}
+                  className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"
+                >
+                  Ndio, Hifadhi
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -930,6 +1004,44 @@ export default function Bidhaa() {
             showToast(msg, 'success');
           }}
         />
+      )}
+
+      {/* Smart pricing guardrail modal */}
+      {guardrailWarning && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200 shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center bg-orange-50">
+              <AlertCircle className="w-6 h-6 text-orange-500 mr-2 animate-bounce flex-shrink-0" />
+              <h2 className="text-lg font-bold text-orange-700">Uhakiki wa Bei</h2>
+            </div>
+            
+            <div className="p-5 text-gray-700 space-y-3">
+              <p className="font-semibold text-gray-800 text-sm">
+                Bidhaa: <span className="text-blue-600">[{guardrailWarning.name}]</span>
+              </p>
+              <p className="text-sm leading-relaxed">
+                Umeingiza bei ya kununulia <span className="font-bold text-gray-900">TZS {guardrailWarning.buy.toLocaleString()}</span> na kuuza <span className="font-bold text-gray-900">TZS {guardrailWarning.sell.toLocaleString()}</span>. Je, una uhakika takwimu hizi ni sahihi?
+              </p>
+            </div>
+            
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex space-x-3">
+              <button 
+                onClick={() => setGuardrailWarning(null)}
+                className="flex-1 py-3 bg-gray-200 text-gray-800 font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"
+              >
+                Hapana, Rekebisha
+              </button>
+              <button 
+                onClick={async () => {
+                  await guardrailWarning.onConfirm();
+                }}
+                className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"
+              >
+                Ndio, Hifadhi
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

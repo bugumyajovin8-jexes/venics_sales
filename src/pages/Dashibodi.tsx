@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useStore } from '../store';
 import { formatCurrency, formatInputNumber, parseInputNumber } from '../utils/format';
 import { format, startOfDay, startOfMonth, startOfYear, subMonths, isBefore, isAfter, addDays } from 'date-fns';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertTriangle, TrendingUp, DollarSign, Package, ShieldCheck, CreditCard, ChevronRight, Calendar, Clock, X, Plus, Trash2, ShoppingCart, Phone, RefreshCw } from 'lucide-react';
+import { AlertTriangle, AlertCircle, TrendingUp, DollarSign, Package, ShieldCheck, CreditCard, ChevronRight, Calendar, Clock, X, Plus, Trash2, ShoppingCart, Phone, RefreshCw, Check } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SyncService } from '../services/sync';
 import { LicenseService } from '../services/license';
@@ -159,6 +159,22 @@ export default function Dashibodi() {
   const [expiryDate, setExpiryDate] = useState('');
   const [isSyncingLicense, setIsSyncingLicense] = useState(false);
 
+  const pricingLossProducts = useMemo(() => {
+    return products.filter(p => p.pricing_verified !== 1 && p.buy_price > 0 && p.sell_price <= p.buy_price);
+  }, [products]);
+
+  const pricingImplausibleProducts = useMemo(() => {
+    return products.filter(p => {
+      if (p.pricing_verified === 1) return false;
+      if (p.buy_price <= 0) return false;
+      const ratio = p.sell_price / p.buy_price;
+      return ratio > 5 || ratio < 1;
+    });
+  }, [products]);
+
+  const [showLossModal, setShowLossModal] = useState(false);
+  const [showImplausibleModal, setShowImplausibleModal] = useState(false);
+
   const handleLicenseSync = async () => {
     if (!navigator.onLine) {
       showToast('Hakuna mtandao (Offline)', 'error');
@@ -175,6 +191,41 @@ export default function Dashibodi() {
       showToast('Imeshindwa kusawazisha taarifa za Mfumo', 'error');
     } finally {
       setIsSyncingLicense(false);
+    }
+  };
+
+  const handleVerifyProductPricing = async (productId: string) => {
+    try {
+      await db.products.update(productId, { pricing_verified: 1, synced: 0 });
+      SyncService.sync();
+      showToast('Bei ya bidhaa imethibitishwa kuwa ipo sahihi!', 'success');
+    } catch (err) {
+      console.error('Failed to verify product pricing in Dashibodi:', err);
+    }
+  };
+
+  const handleVerifyAllProductPricing = async () => {
+    try {
+      const productsToVerify = [
+        ...pricingLossProducts,
+        ...pricingImplausibleProducts
+      ];
+      
+      if (productsToVerify.length === 0) return;
+
+      const uniqueIds = Array.from(new Set(productsToVerify.map(p => p.id)));
+
+      await db.transaction('rw', [db.products], async () => {
+        for (const id of uniqueIds) {
+          await db.products.update(id, { pricing_verified: 1, synced: 0 });
+        }
+      });
+      SyncService.sync();
+      showToast('Bei za bidhaa zote zimethibitishwa kuwa zipo sahihi!', 'success');
+      setShowLossModal(false);
+      setShowImplausibleModal(false);
+    } catch (err) {
+      console.error('Failed to verify all product pricing in Dashibodi:', err);
     }
   };
 
@@ -444,6 +495,36 @@ export default function Dashibodi() {
         </div>
         
         <div className="space-y-3 mt-4">
+          {pricingLossProducts.length > 0 && (
+            <div 
+              onClick={() => setShowLossModal(true)}
+              className="p-3 bg-red-100 rounded-xl border border-red-200 flex items-start space-x-3 cursor-pointer transition-colors"
+            >
+              <AlertCircle className="text-red-600 w-5 h-5 shrink-0 mt-0.5 animate-pulse" />
+              <div>
+                <p className="text-sm font-bold text-red-900">Hasara Inayoweza Kuepukika</p>
+                <p className="text-xs text-red-700 mt-1">
+                  Kuna bidhaa {pricingLossProducts.length} zinazouzwa kwa hasara au kosa la bei! Gusa kuona.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {pricingImplausibleProducts.length > 0 && (
+            <div 
+              onClick={() => setShowImplausibleModal(true)}
+              className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-start space-x-3 cursor-pointer transition-colors"
+            >
+              <AlertCircle className="text-amber-600 w-5 h-5 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-amber-900">Uhakiki wa Bei (Uwiano usio wa kawaida)</p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Kuna bidhaa {pricingImplausibleProducts.length} zenye bei zisizoeleweka (ratio zaidi ya 5x au chini ya 1x).
+                </p>
+              </div>
+            </div>
+          )}
+
           {lowStockProducts.length > 0 && (
             <div 
               onClick={() => setShowLowStockModal(true)}
@@ -582,6 +663,126 @@ export default function Dashibodi() {
             >
               Funga
             </button>
+          </div>
+        </div>
+      )}
+      {/* Loss Products Modal */}
+      {showLossModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center text-red-600">
+                <AlertCircle className="w-6 h-6 mr-2 flex-shrink-0" />
+                <h2 className="text-xl font-bold">Hasara Inayoweza Kuepukika</h2>
+              </div>
+              <button onClick={() => setShowLossModal(false)} className="p-2 bg-gray-100 rounded-full">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              {pricingLossProducts.map((product) => (
+                <div key={product.id} className="p-4 bg-red-50/50 border border-red-100 rounded-2xl">
+                  <p className="font-bold text-gray-800 text-lg mb-2">{product.name}</p>
+                  <p className="text-sm text-red-850 font-medium">
+                    Inauzwa kwa <span className="font-extrabold text-red-750">TZS {product.sell_price.toLocaleString()}</span> wakati ilinunuliwa kwa <span className="font-extrabold text-gray-700">TZS {product.buy_price.toLocaleString()}</span>.
+                  </p>
+                  <div className="flex justify-between items-end mt-2 pt-2 border-t border-red-100 gap-3">
+                    <p className="text-xs text-red-600 font-semibold">
+                      Kila mauzo yataleta hasara ya TZS {(product.buy_price - product.sell_price).toLocaleString()}.
+                    </p>
+                    <button
+                      onClick={() => handleVerifyProductPricing(product.id)}
+                      className="bg-red-200 text-red-900 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-red-300 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      <Check className="w-3.5 h-3.5" /> Bei ipo Sawa
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {pricingLossProducts.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-6">Inapendeza! Hakuna bidhaa kwenye orodha hii.</p>
+              )}
+            </div>
+            
+            <div className="flex space-x-3 mt-6">
+              <button 
+                onClick={() => setShowLossModal(false)}
+                className="flex-1 py-4 bg-gray-200 text-gray-800 font-bold rounded-2xl cursor-pointer hover:bg-gray-300 active:scale-95 transition-all"
+              >
+                Funga
+              </button>
+              {pricingLossProducts.length > 0 && (
+                <button 
+                  onClick={handleVerifyAllProductPricing}
+                  className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" /> Zote zipo Sawa
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Implausible Products Modal */}
+      {showImplausibleModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center text-amber-600">
+                <AlertCircle className="w-6 h-6 mr-2 flex-shrink-0" />
+                <h2 className="text-xl font-bold text-amber-700">Uhakiki wa Bei (Uwiano)</h2>
+              </div>
+              <button onClick={() => setShowImplausibleModal(false)} className="p-2 bg-gray-100 rounded-full">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              {pricingImplausibleProducts.map((product) => {
+                const ratio = product.sell_price / product.buy_price;
+                return (
+                  <div key={product.id} className="p-4 bg-amber-50/50 border border-amber-100 rounded-2xl">
+                    <p className="font-bold text-gray-800 text-lg mb-2">{product.name}</p>
+                    <p className="text-sm text-amber-900 font-medium">
+                      Inanunuliwa kwa <span className="font-bold text-gray-700">TZS {product.buy_price.toLocaleString()}</span> na kuuzwa kwa <span className="font-bold text-gray-900">TZS {product.sell_price.toLocaleString()}</span>.
+                    </p>
+                    <div className="flex justify-between items-end mt-2 pt-2 border-t border-amber-100 gap-3">
+                      <p className="text-xs text-amber-700 font-semibold">
+                        Uwiano wa bei hii ni tofauti (zaidi ya mara {Math.round(ratio)} ya kununulia). Tafadhali hakikisha kama si hitilafu ya kiuandishi.
+                      </p>
+                      <button
+                        onClick={() => handleVerifyProductPricing(product.id)}
+                        className="bg-amber-200 text-amber-905 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-amber-300 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Bei ipo Sawa
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {pricingImplausibleProducts.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-6">Inapendeza! Hakuna bidhaa kwenye orodha hii.</p>
+              )}
+            </div>
+            
+            <div className="flex space-x-3 mt-6">
+              <button 
+                onClick={() => setShowImplausibleModal(false)}
+                className="flex-1 py-4 bg-gray-200 text-gray-800 font-bold rounded-2xl cursor-pointer hover:bg-gray-300 active:scale-95 transition-all"
+              >
+                Funga
+              </button>
+              {pricingImplausibleProducts.length > 0 && (
+                <button 
+                  onClick={handleVerifyAllProductPricing}
+                  className="flex-1 py-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" /> Zote zipo Sawa
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

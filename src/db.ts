@@ -53,6 +53,7 @@ export interface Product {
   notify_expiry_days?: number;
   stock_delta: number;
   isDeleted: number; // 0 for false, 1 for true
+  pricing_verified?: number; // 1 if user marked prices as correct/OK
   created_at: string;
   updated_at: string;
   synced: number;

@@ -3,9 +3,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useStore } from '../store';
 import { format, subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { AlertCircle, Zap, TrendingUp, TrendingDown, Star, Users, AlertTriangle, Lightbulb, ArrowLeft, Smartphone, Wallet } from 'lucide-react';
+import { AlertCircle, Zap, TrendingUp, TrendingDown, Star, Users, AlertTriangle, Lightbulb, ArrowLeft, Smartphone, Wallet, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { SyncService } from '../services/sync';
 
 import EmployeeReports from '../components/EmployeeReports';
 import MshauriChat from '../components/MshauriChat';
@@ -159,6 +160,41 @@ export default function ExecutiveDashboard() {
   const { user } = useStore();
   const navigate = useNavigate();
   const [showEmployeeReports, setShowEmployeeReports] = useState(false);
+
+  const handleVerifyProductPricing = async (productId: string) => {
+    try {
+      await db.products.update(productId, { pricing_verified: 1, synced: 0 });
+      SyncService.sync();
+    } catch (err) {
+      console.error('Failed to verify product price in ExecutiveDashboard:', err);
+    }
+  };
+
+  const handleVerifyAllProductPricing = async () => {
+    try {
+      if (!user?.shopId) return;
+      const productsToVerify = products.filter(p => {
+        if (p.pricing_verified === 1) return false;
+        if (p.buy_price > 0) {
+          if (p.sell_price <= p.buy_price) return true;
+          const ratio = p.sell_price / p.buy_price;
+          if (ratio > 5) return true;
+        }
+        return false;
+      });
+      
+      if (productsToVerify.length === 0) return;
+
+      await db.transaction('rw', [db.products], async () => {
+        for (const p of productsToVerify) {
+          await db.products.update(p.id, { pricing_verified: 1, synced: 0 });
+        }
+      });
+      SyncService.sync();
+    } catch (err) {
+      console.error('Failed to verify all product prices in ExecutiveDashboard:', err);
+    }
+  };
   
   // Fetch all necessary data - Optimized to load only yesterday and today's sales to support large scales
   const sales = useLiveQuery(async () => {
@@ -265,6 +301,34 @@ export default function ExecutiveDashboard() {
       }
     });
 
+    const lossProductsAlerts: { id: string, name: string, buyPrice: number, sellPrice: number, loss: number }[] = [];
+    const implausibleProductsAlerts: { id: string, name: string, buyPrice: number, sellPrice: number, ratio: number }[] = [];
+    products.forEach(p => {
+      if (p.pricing_verified === 1) return;
+      if (p.buy_price > 0) {
+        if (p.sell_price <= p.buy_price) {
+          lossProductsAlerts.push({
+            id: p.id,
+            name: p.name,
+            buyPrice: p.buy_price,
+            sellPrice: p.sell_price,
+            loss: p.buy_price - p.sell_price
+          });
+        } else {
+          const ratio = p.sell_price / p.buy_price;
+          if (ratio > 5) {
+            implausibleProductsAlerts.push({
+              id: p.id,
+              name: p.name,
+              buyPrice: p.buy_price,
+              sellPrice: p.sell_price,
+              ratio
+            });
+          }
+        }
+      }
+    });
+
     // 4. Opportunities (Fursa)
     const opportunities: string[] = [];
     
@@ -333,6 +397,8 @@ export default function ExecutiveDashboard() {
       topDrivers,
       refundsToday,
       discountAlerts: creditAlerts,
+      lossProductsAlerts,
+      implausibleProductsAlerts,
       opportunities,
       employeeActivity
     };
@@ -438,17 +504,28 @@ export default function ExecutiveDashboard() {
       </motion.div>
 
       {/* Alerts */}
-      {(insights.refundsToday > 0 || insights.discountAlerts.length > 0) && (
+      {(insights.refundsToday > 0 || insights.discountAlerts.length > 0 || insights.lossProductsAlerts.length > 0 || insights.implausibleProductsAlerts.length > 0) && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-red-50 p-6 rounded-[2rem] border border-red-100"
+          className="bg-red-50 p-6 rounded-[2rem] border border-red-100 space-y-4"
         >
-          <h3 className="text-sm font-black text-red-800 uppercase tracking-widest mb-3 flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2" /> Tahadhari
-          </h3>
-          <ul className="space-y-3">
+          <div className="flex justify-between items-center flex-wrap gap-2 mb-1">
+            <h3 className="text-sm font-black text-red-800 uppercase tracking-widest flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2 animate-bounce" /> Tahadhari za Duka
+            </h3>
+            {(insights.lossProductsAlerts.length > 0 || insights.implausibleProductsAlerts.length > 0) && (
+              <button
+                onClick={handleVerifyAllProductPricing}
+                className="bg-red-200 text-red-950 px-4 py-2 rounded-2xl text-xs font-black hover:bg-red-300 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+                title="Sema bei zote za bidhaa zilizoorodheshwa zipo sawa"
+              >
+                <Check className="w-3.5 h-3.5" /> Zote Zipo Sawa
+              </button>
+            )}
+          </div>
+          <ul className="space-y-3.5">
             {insights.refundsToday > 0 && (
               <li className="flex items-start">
                 <span className="text-red-500 mr-2">⚠️</span>
@@ -463,6 +540,40 @@ export default function ExecutiveDashboard() {
                 <span className="text-red-900 text-sm font-medium">
                   Mfanyakazi <strong>{alert.name}</strong> amefanya mauzo ya mkopo (credit) mara {alert.count} leo. Fuatilia madeni.
                 </span>
+              </li>
+            ))}
+            
+            {insights.lossProductsAlerts.map((alert, idx) => (
+              <li key={`loss-${idx}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-red-100/50 rounded-2xl">
+                <div className="flex items-start">
+                  <span className="text-red-600 mr-2 mt-0.5">⚠️</span>
+                  <span className="text-red-900 text-sm font-semibold">
+                    Hasara Inayoweza Kuepukika: Bidhaa <span className="text-red-700">[{alert.name}]</span> inauzwa kwa TZS {alert.sellPrice.toLocaleString()} wakati ilinunuliwa kwa TZS {alert.buyPrice.toLocaleString()}. Kila mauzo yataleta hasara ya TZS {alert.loss.toLocaleString()}.
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleVerifyProductPricing(alert.id)}
+                  className="shrink-0 bg-red-200 text-red-900 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-red-300 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" /> Bei ipo Sawa
+                </button>
+              </li>
+            ))}
+
+            {insights.implausibleProductsAlerts.map((alert, idx) => (
+              <li key={`imp-${idx}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-amber-100/40 rounded-2xl">
+                <div className="flex items-start">
+                  <span className="text-amber-600 mr-2 mt-0.5">🛑</span>
+                  <span className="text-amber-900 text-sm font-medium">
+                    Uhakiki wa Bei: Bidhaa <span className="text-amber-850">[{alert.name}]</span> ina bei ya kununulia TZS {alert.buyPrice.toLocaleString()} na kuuza TZS {alert.sellPrice.toLocaleString()}. Uwiano wa bei hii haueleweki (zaidi ya mara {Math.round(alert.ratio)} ya bei ya kununulia).
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleVerifyProductPricing(alert.id)}
+                  className="shrink-0 bg-amber-200 text-amber-905 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-amber-300 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" /> Bei ipo Sawa
+                </button>
               </li>
             ))}
           </ul>
