@@ -5,12 +5,13 @@ import { format, isSameMonth } from 'date-fns';
 import { 
   Trash2, Clock, User, Package, Edit, Plus, AlertCircle, RotateCcw, 
   Wallet, Tag, CheckCircle2, XCircle, MonitorSmartphone,
-  ChevronDown, ChevronRight, Calendar
+  ChevronDown, ChevronRight, Calendar, ArrowLeft
 } from 'lucide-react';
 import { useStore } from '../store';
 import { SyncService } from '../services/sync';
 import { TelemetryService } from '../services/telemetry';
 import { formatCurrency } from '../utils/format';
+import { useNavigate } from 'react-router-dom';
 
 function MonthSection({ 
   monthKey, 
@@ -32,8 +33,11 @@ function MonthSection({
       if (!isExpanded) return [];
       
       // Parse monthKey to get start/end range
-      const startDate = new Date(monthKey);
-      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 23, 59, 59);
+      const [yearStr, monthStr] = monthKey.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10) - 1;
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 0, 23, 59, 59);
       
       return db.auditLogs
         .where('created_at')
@@ -91,6 +95,9 @@ function MonthSection({
     }
   };
 
+  const [yearStr, monthStr] = monthKey.split('-');
+  const monthLabel = format(new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1), 'MMMM yyyy');
+
   return (
     <div className="flex flex-col space-y-2">
       {/* Month Header */}
@@ -106,7 +113,7 @@ function MonthSection({
           <Calendar className={`w-5 h-5 ${isCurrentMonth ? 'text-indigo-200' : 'text-indigo-500'}`} />
           <div className="text-left">
             <h3 className="font-bold text-sm sm:text-base uppercase tracking-wide">
-              {monthKey}
+              {monthLabel}
             </h3>
             <p className={`text-[10px] sm:text-xs font-medium ${isCurrentMonth ? 'text-indigo-100' : 'text-gray-400'}`}>
               Mabadiliko {count} yaliyorekodiwa
@@ -122,7 +129,7 @@ function MonthSection({
           {monthLogs.length === 0 && count > 0 && (
             <div className="py-10 text-center text-gray-400">
               <Clock className="w-8 h-8 mx-auto mb-2 opacity-20 animate-spin" />
-              <p className="text-xs">Inapakia mabadiliko ya {monthKey}...</p>
+              <p className="text-xs">Inapakia mabadiliko ya {monthLabel}...</p>
             </div>
           )}
           {monthLogs.map((log) => (
@@ -337,13 +344,14 @@ export default function AuditLogs() {
   const { isBoss, showAlert, showConfirm } = useStore();
   const settings = useLiveQuery(() => db.settings.get(1));
   const currency = settings?.currency || 'TZS';
+  const navigate = useNavigate();
 
   useEffect(() => {
     TelemetryService.trackMabadilikoYaBidhaaView();
   }, []);
 
   // Track expanded months
-  const currentMonthKey = format(new Date(), 'MMMM yyyy');
+  const currentMonthKey = format(new Date(), 'yyyy-MM');
   const [expandedMonths, setExpandedMonths] = useState<string[]>([currentMonthKey]);
 
   // Fetch only the structure/available months first (efficient index scan)
@@ -359,7 +367,7 @@ export default function AuditLogs() {
       
       const groups: Record<string, number> = {};
       filtered.forEach(log => {
-        const mKey = format(new Date(log.created_at), 'MMMM yyyy');
+        const mKey = format(new Date(log.created_at), 'yyyy-MM');
         groups[mKey] = (groups[mKey] || 0) + 1;
       });
       return groups;
@@ -368,9 +376,7 @@ export default function AuditLogs() {
   ) || {};
 
   const sortedMonthKeys = useMemo(() => {
-    return Object.keys(availableMonths).sort((a, b) => {
-      return new Date(b).getTime() - new Date(a).getTime();
-    });
+    return Object.keys(availableMonths).sort((a, b) => b.localeCompare(a));
   }, [availableMonths]);
 
   const toggleMonth = (month: string) => {
@@ -408,9 +414,12 @@ export default function AuditLogs() {
   }
 
   return (
-    <div className="p-4 flex flex-col h-full bg-gray-50">
+    <div className="p-4 flex flex-col h-full bg-gray-50 pt-safe pt-safe-standalone">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
+          <button onClick={() => navigate(-1)} className="mr-3 p-2 bg-white rounded-full shadow-sm">
+             <ArrowLeft className="w-5 h-5" />
+          </button>
           <h1 className="text-2xl font-bold text-gray-900">Mabadiliko ya Bidhaa</h1>
         </div>
         {sortedMonthKeys.length > 0 && (

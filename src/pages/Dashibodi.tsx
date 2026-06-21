@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useStore } from '../store';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatInputNumber, parseInputNumber } from '../utils/format';
 import { format, startOfDay, startOfMonth, startOfYear, subMonths, isBefore, isAfter, addDays } from 'date-fns';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { AlertTriangle, TrendingUp, DollarSign, Package, ShieldCheck, CreditCard, ChevronRight, Calendar, Clock, X, Plus, Trash2, ShoppingCart, Phone, RefreshCw } from 'lucide-react';
@@ -178,16 +178,13 @@ export default function Dashibodi() {
     }
   };
 
-  const formatInputNumber = (val: string) => {
-    const numeric = val.replace(/[^0-9]/g, '');
-    return numeric;
-  };
+
 
   const handleAddStock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProductForStock || !stockToAdd) return;
 
-    const quantity = parseInt(stockToAdd);
+    const quantity = parseInputNumber(stockToAdd);
     if (isNaN(quantity) || quantity <= 0) return;
 
     try {
@@ -561,8 +558,8 @@ export default function Dashibodi() {
 
                         <button 
                           type="submit"
-                          className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100"
-                        >
+                          className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100 cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+                         style={{ WebkitTapHighlightColor: 'transparent' }}>
                           Hifadhi Stock Mpya
                         </button>
                       </form>

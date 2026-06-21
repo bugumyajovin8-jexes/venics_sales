@@ -2,11 +2,11 @@ import { useState, useMemo, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useStore } from '../store';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatInputNumber, parseInputNumber } from '../utils/format';
 import { getValidStock } from '../utils/stock';
 import { format, startOfDay, startOfWeek, startOfMonth, subMonths, startOfYear, eachDayOfInterval, subDays } from 'date-fns';
-import { Receipt, Calendar, Download, TrendingUp, BarChart3, ArrowUpRight, ArrowDownRight, RotateCcw, AlertCircle, FileText, RefreshCw, Plus, Minus, Trash2, X, Search, ShoppingCart, CheckCircle, Edit2, ShoppingBag, Tag, Wallet } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { Receipt, Calendar, Download, TrendingUp, BarChart3, ArrowUpRight, ArrowDownRight, RotateCcw, AlertCircle, FileText, RefreshCw, Plus, Minus, Trash2, X, Search, ShoppingCart, CheckCircle, Edit2, ShoppingBag, Tag, Wallet, ArrowLeft } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { SyncService } from '../services/sync';
 import { TelemetryService } from '../services/telemetry';
@@ -153,6 +153,7 @@ const BackdatedQtyControl = ({ product, cartItem, updateQty, removeFromCart, sho
 export default function Historia() {
   const { user, isBoss, isFeatureEnabled, showAlert, showConfirm, syncStatus, showToast } = useStore();
   const location = useLocation();
+  const navigate = useNavigate();
   const isAuthenticated = useStore(state => state.isAuthenticated);
   const settings = useLiveQuery(() => db.settings.get(1));
   const shop = useLiveQuery(() => user?.shopId ? db.shops.get(user.shopId) : Promise.resolve(undefined), [user?.shopId]);
@@ -163,6 +164,7 @@ export default function Historia() {
   // --- BACKDATED ENTRIES STATE & HANDLERS ---
   const [showBackdatedSaleModal, setShowBackdatedSaleModal] = useState(false);
   const [showBackdatedExpenseModal, setShowBackdatedExpenseModal] = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
 
   // Sale Modal state
   const [backdatedSaleDate, setBackdatedSaleDate] = useState(() => {
@@ -341,15 +343,7 @@ export default function Historia() {
     return backdatedSaleCart.reduce((sum, item) => sum + ((item.sell_price - item.buy_price) * item.qty), 0);
   }, [backdatedSaleCart]);
 
-  const formatInputNumber = (val: string) => {
-    const num = val.replace(/[^0-9]/g, '');
-    if (!num) return '';
-    return Number(num).toLocaleString();
-  };
 
-  const parseInputNumber = (val: string) => {
-    return Number(val.replace(/,/g, '')) || 0;
-  };
 
   const handleCompleteBackdatedSale = async (overrideMethod?: 'cash' | 'credit') => {
     if (backdatedSaleCart.length === 0) {
@@ -1068,8 +1062,13 @@ export default function Historia() {
   }, [sales, expenses, reportType]);
 
   return (
-    <div className="p-4 flex flex-col h-full">
-      <h1 className="text-2xl font-bold text-gray-800 mb-4">Historia ya Mauzo</h1>
+    <div className="p-4 flex flex-col h-full pt-safe pt-safe-standalone">
+      <div className="flex items-center mb-4">
+        <button onClick={() => navigate(-1)} className="mr-3 p-2 bg-white rounded-full shadow-sm border border-gray-100 cursor-pointer">
+           <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-2xl font-bold text-gray-800">Historia ya Mauzo</h1>
+      </div>
 
       {/* View Toggle */}
       {(user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'boss') && (
@@ -1091,34 +1090,6 @@ export default function Historia() {
 
       {view === 'risiti' ? (
         <>
-          {/* Backdated Entries Action Section */}
-          <div className="flex gap-3 mb-5">
-            <button
-              onClick={() => {
-                setBackdatedSaleCart([]);
-                setBackdatedPaymentMethod('cash');
-                setBackdatedCustomerName('');
-                setBackdatedCustomerPhone('');
-                setShowBackdatedSaleModal(true);
-              }}
-              className="flex-1 py-3 px-4 bg-blue-600 active:scale-95 text-white font-black rounded-2xl text-xs transition-all shadow-sm shadow-blue-500/10 flex items-center justify-center space-x-1.5 cursor-pointer"
-            >
-              <Plus className="w-4.5 h-4.5" />
-              <span>Mauzo</span>
-            </button>
-            <button
-              onClick={() => {
-                setBackdatedExpenseAmount('');
-                setBackdatedExpenseDesc('');
-                setBackdatedExpenseCategory('Mengineyo');
-                setShowBackdatedExpenseModal(true);
-              }}
-              className="flex-1 py-3 px-4 bg-orange-600 active:scale-95 text-white font-black rounded-2xl text-xs transition-all shadow-sm shadow-orange-500/10 flex items-center justify-center space-x-1.5 cursor-pointer"
-            >
-              <Plus className="w-4.5 h-4.5" />
-              <span>Matumizi</span>
-            </button>
-          </div>
 
           <div className="flex space-x-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
             {[
@@ -1180,7 +1151,7 @@ export default function Historia() {
 
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-lg font-semibold text-gray-800">Risiti za Mauzo</h2>
-            <button onClick={exportCSV} className="text-blue-600 flex items-center text-sm font-medium">
+            <button onClick={exportCSV} className="text-blue-600 flex items-center text-sm font-medium cursor-pointer touch-manipulation select-none active:scale-95 transition-all" style={{ WebkitTapHighlightColor: 'transparent' }}>
               <Download className="w-4 h-4 mr-1" /> Pakua CSV
             </button>
           </div>
@@ -1269,7 +1240,7 @@ export default function Historia() {
         <div className="flex-1 overflow-y-auto space-y-6 pb-4 scrollbar-hide">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-xl font-bold text-gray-800">Ripoti ya Biashara</h2>
-            <button onClick={exportPDFReports} className="text-blue-600 flex items-center text-sm font-medium">
+            <button onClick={exportPDFReports} className="text-blue-600 flex items-center text-sm font-medium cursor-pointer touch-manipulation select-none active:scale-95 transition-all" style={{ WebkitTapHighlightColor: 'transparent' }}>
               <FileText className="w-4 h-4 mr-1" /> Pakua PDF
             </button>
           </div>
@@ -1482,7 +1453,7 @@ export default function Historia() {
               {/* Top Bar with Date Selector and Close Button */}
               <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
                 <div className="flex-1 flex items-center space-x-2.5">
-                  <span className="text-xs font-black text-gray-500 uppercase flex-shrink-0">Tarehe:</span>
+                  <span className="text-xs font-black text-gray-500 uppercase flex-shrink-0">Andika hapa tarehe ya mauzo ya nyuma:</span>
                   <input
                     type="date"
                     value={backdatedSaleDate}
@@ -1948,8 +1919,8 @@ export default function Historia() {
                 type="button"
                 onClick={handleSaveBackdatedExpense}
                 disabled={isSubmittingBackdated || !backdatedExpenseAmount}
-                className="px-6 py-3 bg-orange-600 active:scale-95 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-orange-500/10 cursor-pointer transition-all"
-              >
+                className="px-6 py-3 bg-orange-600 active:scale-95 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-orange-500/10 cursor-pointer transition-all cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+               style={{ WebkitTapHighlightColor: 'transparent' }}>
                 {isSubmittingBackdated ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1965,6 +1936,62 @@ export default function Historia() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating Action Button (FAB) for backdated entries */}
+      {view === 'risiti' && (
+        <>
+          {/* Menu backdrop (optional) */}
+          {showActionMenu && (
+             <div 
+               className="fixed inset-0 z-30 bg-black/5" 
+               onClick={() => setShowActionMenu(false)}
+             />
+          )}
+          <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-40 flex flex-col items-end">
+            {showActionMenu && (
+              <div className="flex flex-col gap-3 mb-4 items-end animate-in fade-in slide-in-from-bottom-5">
+                <button
+                  onClick={() => {
+                    setShowActionMenu(false);
+                    setBackdatedExpenseAmount('');
+                    setBackdatedExpenseDesc('');
+                    setBackdatedExpenseCategory('Mengineyo');
+                    setShowBackdatedExpenseModal(true);
+                  }}
+                  className="flex items-center gap-3 bg-white px-4 py-3 rounded-full shadow-lg border border-orange-100 text-orange-600 font-bold active:scale-95 transition-transform"
+                >
+                  <span className="text-sm">Andika Matumizi Nyuma</span>
+                  <div className="bg-orange-100 p-2 rounded-full">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowActionMenu(false);
+                    setBackdatedSaleCart([]);
+                    setBackdatedPaymentMethod('cash');
+                    setBackdatedCustomerName('');
+                    setBackdatedCustomerPhone('');
+                    setShowBackdatedSaleModal(true);
+                  }}
+                  className="flex items-center gap-3 bg-white px-4 py-3 rounded-full shadow-lg border border-blue-100 text-blue-600 font-bold active:scale-95 transition-transform"
+                >
+                  <span className="text-sm">Andika Mauzo Nyuma</span>
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <ShoppingCart className="w-5 h-5" />
+                  </div>
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => setShowActionMenu(!showActionMenu)}
+              className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all transform active:scale-95 z-50 ${showActionMenu ? 'bg-gray-800 rotate-45' : 'bg-blue-600'} text-white`}
+            >
+              <Plus className="w-7 h-7" />
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

@@ -328,8 +328,10 @@ export class SyncService {
         useStore.getState().setFeatures(featureMap);
       }
 
+      useStore.getState().setSyncHealth('healthy');
       console.log(`${scope} sync completed successfully`);
     } catch (error) {
+      useStore.getState().setSyncHealth('error');
       console.error(`${scope} sync failed:`, error);
     }
   }

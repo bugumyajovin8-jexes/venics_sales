@@ -8,6 +8,20 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+@layer base {
+  button {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s;
+  }
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

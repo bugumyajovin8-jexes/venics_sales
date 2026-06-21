@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Expense } from '../db';
 import { useStore } from '../store';
-import { formatCurrency } from '../utils/format';
-import { Plus, Trash2, Calendar, Tag, FileText, Wallet, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatCurrency, formatInputNumber, parseInputNumber } from '../utils/format';
+import { Plus, Trash2, Calendar, Tag, FileText, Wallet, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { SyncService } from '../services/sync';
 import { TelemetryService } from '../services/telemetry';
 import { format, startOfMonth } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 const CATEGORIES = [
   'Kodi',
@@ -47,6 +48,7 @@ export default function Matumizi() {
   const { user, showConfirm, showAlert, isBoss, isFeatureEnabled } = useStore();
   const settings = useLiveQuery(() => db.settings.get(1));
   const currency = settings?.currency || 'TZS';
+  const navigate = useNavigate();
   const expenses = useLiveQuery(async () => {
     if (!user?.shopId) return [];
     const list = await db.expenses.filter(e => e.isDeleted !== 1 && e.shop_id === user.shopId).toArray();
@@ -83,15 +85,7 @@ export default function Matumizi() {
     );
   }
 
-  const formatInputNumber = (val: string) => {
-    const num = val.replace(/[^0-9]/g, '');
-    if (!num) return '';
-    return Number(num).toLocaleString();
-  };
 
-  const parseInputNumber = (val: string) => {
-    return Number(val.replace(/,/g, '')) || 0;
-  };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -239,7 +233,7 @@ export default function Matumizi() {
 
   if (isAdding) {
     return (
-      <div className="p-4">
+      <div className="p-4 pt-safe pt-safe-standalone h-full overflow-y-auto">
         <div className="flex items-center mb-6">
           <button 
             onClick={() => setIsAdding(false)}
@@ -306,8 +300,8 @@ export default function Matumizi() {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl mt-6 shadow-lg shadow-blue-100"
-          >
+            className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl mt-6 shadow-lg shadow-blue-100 cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+           style={{ WebkitTapHighlightColor: 'transparent' }}>
             {loading ? 'Inahifadhi...' : 'Hifadhi Matumizi'}
           </button>
         </form>
@@ -316,9 +310,14 @@ export default function Matumizi() {
   }
 
   return (
-    <div className="p-4 flex flex-col h-full">
+    <div className="p-4 flex flex-col h-full pt-safe pt-safe-standalone">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Matumizi</h1>
+        <div className="flex items-center">
+          <button onClick={() => navigate(-1)} className="mr-3 p-2 bg-white rounded-full shadow-sm">
+             <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-2xl font-bold text-gray-800">Matumizi</h1>
+        </div>
         <button 
           onClick={() => setIsAdding(true)}
           className="bg-blue-600 text-white p-3 rounded-2xl shadow-lg shadow-blue-100"

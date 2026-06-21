@@ -2,13 +2,158 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { useStore } from '../store';
-import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
-import { AlertCircle, Zap, TrendingUp, TrendingDown, Star, Users, AlertTriangle, Lightbulb, ArrowLeft } from 'lucide-react';
+import { format, subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { AlertCircle, Zap, TrendingUp, TrendingDown, Star, Users, AlertTriangle, Lightbulb, ArrowLeft, Smartphone, Wallet } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 
 import EmployeeReports from '../components/EmployeeReports';
 import MshauriChat from '../components/MshauriChat';
+
+function PaymentBreakdownWidget({ shopId }: { shopId: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [period, setPeriod] = useState<'today' | 'yesterday' | 'this_month' | 'last_month'>('today');
+
+  const paymentData = useLiveQuery(async () => {
+    if (!shopId) return { cash: 0, mobile: 0 };
+    
+    let startIso: string;
+    let endIso: string;
+    const now = new Date();
+    
+    if (period === 'today') {
+      startIso = startOfDay(now).toISOString();
+      endIso = endOfDay(now).toISOString();
+    } else if (period === 'yesterday') {
+      const y = subDays(now, 1);
+      startIso = startOfDay(y).toISOString();
+      endIso = endOfDay(y).toISOString();
+    } else if (period === 'this_month') {
+      startIso = startOfMonth(now).toISOString();
+      endIso = endOfMonth(now).toISOString();
+    } else {
+      const lm = subMonths(now, 1);
+      startIso = startOfMonth(lm).toISOString();
+      endIso = endOfMonth(lm).toISOString();
+    }
+    
+    // Using a faster index based approach to just grab sales for the period
+    const sales = await db.sales
+      .where('[shop_id+isDeleted+created_at]')
+      .between([shopId, 0, startIso], [shopId, 0, endIso])
+      .toArray();
+
+    let cash = 0;
+    let mobile = 0;
+    
+    sales.forEach(s => {
+      // Exclude cancelled/refunded if they are not considered valid revenue
+      if (s.status !== 'cancelled' && s.status !== 'refunded') {
+        const amount = s.total_amount || 0;
+        if (s.payment_method === 'cash') {
+          cash += amount;
+        } else if (s.payment_method === 'mobile' || s.payment_method === 'mobile_money') {
+          mobile += amount;
+        }
+      }
+    });
+
+    return { cash, mobile, total: cash + mobile };
+  }, [shopId, period], { cash: 0, mobile: 0, total: 0 });
+
+  return (
+    <div className="space-y-4">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-indigo-50 text-indigo-700 font-bold py-5 rounded-[2rem] flex items-center justify-between px-6 transition-all active:scale-95 border border-indigo-100"
+      >
+        <div className="flex items-center">
+          <Wallet className="w-6 h-6 mr-3 text-indigo-500" />
+          <div className="text-left">
+            <h3 className="font-bold text-lg">Miamala (Cash / Simu)</h3>
+            <p className="text-indigo-600/70 text-sm font-medium">Bonyeza kuona mchanganuo wa malipo</p>
+          </div>
+        </div>
+        <ArrowLeft className={`w-5 h-5 transition-transform duration-300 ${isOpen ? '-rotate-90' : 'rotate-180'}`} />
+      </button>
+
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden"
+        >
+          <div className="flex space-x-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
+            <button
+              onClick={() => setPeriod('today')}
+              className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer touch-manipulation select-none active:scale-95 ${
+                period === 'today' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              Leo
+            </button>
+            <button
+              onClick={() => setPeriod('yesterday')}
+              className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer touch-manipulation select-none active:scale-95 ${
+                period === 'yesterday' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              Jana
+            </button>
+            <button
+              onClick={() => setPeriod('this_month')}
+              className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer touch-manipulation select-none active:scale-95 ${
+                period === 'this_month' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              Mwezi Huu
+            </button>
+            <button
+              onClick={() => setPeriod('last_month')}
+              className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer touch-manipulation select-none active:scale-95 ${
+                period === 'last_month' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              Mwezi Uliopita
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 flex flex-col justify-center">
+              <div className="flex items-center text-emerald-800 mb-1">
+                <Wallet className="w-4 h-4 mr-1.5" />
+                <span className="text-xs font-bold uppercase tracking-wider">Taslimu (Cash)</span>
+              </div>
+              <span className="text-lg font-black text-emerald-900 mt-1">
+                {paymentData.cash.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-emerald-600 mt-1 font-semibold">
+                {paymentData.total > 0 ? Math.round((paymentData.cash / paymentData.total) * 100) : 0}% ya mapato
+              </span>
+            </div>
+            
+            <div className="bg-sky-50 rounded-2xl p-4 border border-sky-100 flex flex-col justify-center">
+              <div className="flex items-center text-sky-800 mb-1">
+                <Smartphone className="w-4 h-4 mr-1.5" />
+                <span className="text-xs font-bold uppercase tracking-wider">Kwa Simu (Mobile)</span>
+              </div>
+              <span className="text-lg font-black text-sky-900 mt-1">
+                {paymentData.mobile.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-sky-600 mt-1 font-semibold">
+                {paymentData.total > 0 ? Math.round((paymentData.mobile / paymentData.total) * 100) : 0}% ya mapato
+              </span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
 
 export default function ExecutiveDashboard() {
   const { user } = useStore();
@@ -390,6 +535,9 @@ export default function ExecutiveDashboard() {
           <ArrowLeft className="w-5 h-5 rotate-180" />
         </button>
       </motion.div>
+
+      {/* Payment Breakdown */}
+      {user?.shopId && <PaymentBreakdownWidget shopId={user.shopId} />}
 
       {/* Footer Message */}
       <div className="text-center pt-6 pb-4">

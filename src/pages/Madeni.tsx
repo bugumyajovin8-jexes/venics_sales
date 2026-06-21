@@ -414,8 +414,8 @@ export default function Madeni() {
                 <button 
                   onClick={executeWhatsAppSend}
                   disabled={!whatsappPhone.trim() || !customMessage.trim()}
-                  className="py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-100 flex items-center justify-center space-x-1 disabled:opacity-50 transition-all cursor-pointer"
-                >
+                  className="py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-100 flex items-center justify-center space-x-1 disabled:opacity-50 transition-all cursor-pointer cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+                 style={{ WebkitTapHighlightColor: 'transparent' }}>
                   <span>Tuma WhatsApp</span>
                   <span>🚀</span>
                 </button>

@@ -13,7 +13,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, subDays, isBefore, isAfter, addDays, format } from 'date-fns';
 
 export default function Zaidi() {
-  const { user, logout, showAlert, showConfirm, isBoss, isFeatureEnabled } = useStore();
+  const { user, logout, showAlert, showConfirm, isBoss, isFeatureEnabled, syncHealth } = useStore();
   const location = useLocation();
   const settings = useLiveQuery(() => db.settings.get(1));
   const currency = settings?.currency || 'TZS';
@@ -497,7 +497,7 @@ export default function Zaidi() {
     <div className="p-4 pb-20">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Zaidi</h1>
-        <button onClick={handleLogout} className="text-red-600 flex items-center font-medium bg-red-50 px-4 py-2 rounded-xl">
+        <button onClick={handleLogout} className="text-red-600 flex items-center font-medium bg-red-50 px-4 py-2 rounded-xl cursor-pointer touch-manipulation select-none active:scale-95 transition-all" style={{ WebkitTapHighlightColor: 'transparent' }}>
           <LogOut className="w-5 h-5 mr-2" /> Ondoka (Logout)
         </button>
       </div>
@@ -552,7 +552,7 @@ export default function Zaidi() {
             <button 
               onClick={toggleExpiry}
               className={`w-12 h-6 rounded-full transition-colors relative ${shop?.enable_expiry ? 'bg-purple-600' : 'bg-gray-200'}`}
-            >
+             style={{ WebkitTapHighlightColor: 'transparent' }}>
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${shop?.enable_expiry ? 'left-7' : 'left-1'}`} />
             </button>
           </div>
@@ -802,7 +802,7 @@ export default function Zaidi() {
             <button 
               onClick={toggleAutoInvoice}
               className={`w-12 h-6 rounded-full transition-colors relative ${settings?.autoInvoice ? 'bg-blue-600' : 'bg-gray-200'}`}
-            >
+             style={{ WebkitTapHighlightColor: 'transparent' }}>
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings?.autoInvoice ? 'left-7' : 'left-1'}`} />
             </button>
           </div>
@@ -828,7 +828,7 @@ export default function Zaidi() {
               <button 
                 onClick={toggleOperate24Hours}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings?.operate24Hours ? 'bg-indigo-600' : 'bg-gray-200'}`}
-              >
+               style={{ WebkitTapHighlightColor: 'transparent' }}>
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings?.operate24Hours ? 'left-7' : 'left-1'}`} />
               </button>
             </div>
@@ -962,7 +962,13 @@ export default function Zaidi() {
         </section>
 
 
-        <div className="text-center py-8">
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="flex items-center space-x-2 mb-4 bg-white px-4 py-2 rounded-full border border-gray-100 shadow-sm">
+            <div className={`w-3 h-3 rounded-full ${syncHealth === 'healthy' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'} transition-colors duration-500`} />
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              {syncHealth === 'healthy' ? 'Umesawazishwa' : 'Hitilafu ya Mtandao'}
+            </span>
+          </div>
           <p className="text-lg font-bold text-blue-600">Venics Sales</p>
           <p className="text-xs text-gray-400 mt-1">Version 1.0.0</p>
           <p className="text-[10px] text-gray-300 mt-4">Made by Venics Software Company</p>
@@ -1159,8 +1165,8 @@ export default function Zaidi() {
               <button 
                 onClick={handleDeleteHistory}
                 disabled={!selectedDeletePeriod}
-                className="flex-1 py-4 bg-red-600 disabled:bg-gray-300 text-white font-bold rounded-2xl shadow-lg shadow-red-100"
-              >
+                className="flex-1 py-4 bg-red-600 disabled:bg-gray-300 text-white font-bold rounded-2xl shadow-lg shadow-red-100 cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+               style={{ WebkitTapHighlightColor: 'transparent' }}>
                 Futa Sasa
               </button>
             </div>
@@ -1204,8 +1210,8 @@ export default function Zaidi() {
                 <button 
                   onClick={handleUpdateStaff}
                   disabled={isAddingStaff || !staffName.trim()}
-                  className="flex-1 py-4 bg-blue-600 disabled:bg-gray-300 text-white font-bold rounded-2xl shadow-lg shadow-blue-100"
-                >
+                  className="flex-1 py-4 bg-blue-600 disabled:bg-gray-300 text-white font-bold rounded-2xl shadow-lg shadow-blue-100 cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+                 style={{ WebkitTapHighlightColor: 'transparent' }}>
                   {isAddingStaff ? 'Inahifadhi...' : 'Hifadhi'}
                 </button>
               </div>
@@ -1255,8 +1261,8 @@ export default function Zaidi() {
                 <button 
                   onClick={handleInviteStaff}
                   disabled={isAddingStaff || !staffEmail}
-                  className="flex-1 py-4 bg-green-600 disabled:bg-gray-300 text-white font-bold rounded-2xl shadow-lg shadow-green-100"
-                >
+                  className="flex-1 py-4 bg-green-600 disabled:bg-gray-300 text-white font-bold rounded-2xl shadow-lg shadow-green-100 cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+                 style={{ WebkitTapHighlightColor: 'transparent' }}>
                   {isAddingStaff ? 'Inatuma...' : 'Tuma Mwaliko'}
                 </button>
               </div>
@@ -1301,8 +1307,8 @@ export default function Zaidi() {
                 <button 
                   onClick={handleUpdateProfile}
                   disabled={isAddingStaff || !newName.trim()}
-                  className="flex-1 py-4 bg-blue-600 disabled:bg-gray-300 text-white font-bold rounded-2xl shadow-lg shadow-blue-100"
-                >
+                  className="flex-1 py-4 bg-blue-600 disabled:bg-gray-300 text-white font-bold rounded-2xl shadow-lg shadow-blue-100 cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+                 style={{ WebkitTapHighlightColor: 'transparent' }}>
                   {isAddingStaff ? 'Inahifadhi...' : 'Hifadhi'}
                 </button>
               </div>

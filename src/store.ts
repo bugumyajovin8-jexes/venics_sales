@@ -53,7 +53,9 @@ interface PosState {
 
   // Sync Status Indicator
   syncStatus: 'active' | 'sleep';
+  syncHealth: 'healthy' | 'error';
   setSyncStatus: (status: 'active' | 'sleep') => void;
+  setSyncHealth: (health: 'healthy' | 'error') => void;
 
   // Chatbot State control
   isMshauriOpen: boolean;
@@ -69,6 +71,7 @@ interface PosState {
     page: 'stock' | 'sales' | 'expenses' | 'security' | 'license';
     chatPrompt: string;
     isRead: boolean;
+    isHidden?: boolean;
     timestamp: number;
   }[];
   addNotificationList: (notification: {
@@ -79,6 +82,7 @@ interface PosState {
     page: 'stock' | 'sales' | 'expenses' | 'security' | 'license';
     chatPrompt: string;
     isRead: boolean;
+    isHidden?: boolean;
     timestamp: number;
   }) => void;
   dismissNotification: (id: string) => void;
@@ -204,7 +208,9 @@ export const useStore = create<PosState>((set, get) => ({
     toasts: state.toasts.filter((t) => t.id !== id)
   })),
   syncStatus: 'active',
+  syncHealth: 'healthy',
   setSyncStatus: (status) => set({ syncStatus: status }),
+  setSyncHealth: (health) => set({ syncHealth: health }),
 
   // Chatbot State implementation
   isMshauriOpen: false,
@@ -236,7 +242,7 @@ export const useStore = create<PosState>((set, get) => ({
       // We set isRead back to false since it's a new alert text basically, but to avoid flash during initial sync
       // we only change the text and preserve isRead if the user already saw it. Let's just reset isRead to false 
       // so they know it changed, BUT during rapid sync it changes fast, so they haven't read it anyway.
-      updated[existingIndex] = { ...notification, isRead: existing.isRead };
+      updated[existingIndex] = { ...notification, isRead: existing.isRead, isHidden: existing.isHidden };
     } else {
       updated = [notification, ...state.notificationsList];
     }
@@ -245,7 +251,9 @@ export const useStore = create<PosState>((set, get) => ({
     return { notificationsList: updated };
   }),
   dismissNotification: (id) => set((state) => {
-    const updated = state.notificationsList.filter(n => n.id !== id);
+    const updated = state.notificationsList.map(n => 
+      n.id === id ? { ...n, isRead: true, isHidden: true } : n
+    );
     localStorage.setItem('pos_inapp_notifications', JSON.stringify(updated));
     return { notificationsList: updated };
   }),

@@ -349,7 +349,7 @@ export default function EmployeeReports({ onClose }: { onClose: () => void }) {
   if (selectedEmployeeId) {
     const emp = employees.find(e => e.id === selectedEmployeeId);
     return (
-      <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col overflow-hidden">
+      <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col overflow-hidden pt-safe pt-safe-standalone">
         <div className="bg-white px-4 py-4 flex items-center border-b border-gray-100 shadow-sm shrink-0">
           <button 
             onClick={() => setSelectedEmployeeId(null)}
@@ -702,7 +702,7 @@ export default function EmployeeReports({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-50 z-40 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-gray-50 z-40 flex flex-col overflow-hidden pt-safe pt-safe-standalone">
       <div className="bg-white px-4 py-4 flex items-center border-b border-gray-100 shadow-sm shrink-0">
         <button 
           onClick={onClose}

@@ -33,7 +33,8 @@ export default function NotificationCenter() {
     return null;
   }
 
-  const unreadNotifications = notificationsList.filter(n => !n.isRead);
+  const visibleNotifications = notificationsList.filter(n => !n.isHidden);
+  const unreadNotifications = visibleNotifications.filter(n => !n.isRead);
   const hasUnread = unreadNotifications.length > 0;
   
   // Show only ONE active unread notification pop-out at a time!
@@ -209,7 +210,7 @@ export default function NotificationCenter() {
               </div>
 
               <div className="flex-1 overflow-y-auto max-h-[380px] p-2 bg-slate-50/50 space-y-2 no-scrollbar">
-                {notificationsList.length === 0 ? (
+                {visibleNotifications.length === 0 ? (
                   <div className="py-12 px-6 text-center flex flex-col items-center justify-center">
                     <div className="p-4 bg-emerald-50 rounded-full text-emerald-600 mb-3 border border-emerald-100">
                       <Check className="w-7 h-7" />
@@ -218,7 +219,7 @@ export default function NotificationCenter() {
                     <p className="text-gray-500 text-xs mt-1 max-w-[240px]">Hakuna alert, taarifa za shaka au hatari ya kumalizika kwa muda wa Mfumo kwa sasa.</p>
                   </div>
                 ) : (
-                  notificationsList.map((notification) => {
+                  visibleNotifications.map((notification) => {
                     const isCritical = notification.type === 'critical';
                     const isWarning = notification.type === 'warning';
                     

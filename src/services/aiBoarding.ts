@@ -1,8 +1,42 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { supabase } from "../supabase";
 
-// Try custom key first, then fallback to platform default
-const apiKey = import.meta.env.VITE_MY_GEMINI_KEY || process.env.GEMINI_API_KEY;
-const ai = new GoogleGenAI({ apiKey });
+const apiKey = import.meta.env.VITE_MY_GEMINI_KEY;
+
+async function runGeminiWithSecureProxy(payload: { model: string; contents: any; config?: any }): Promise<string> {
+  // 1. If we have a local dev key, use that directly
+  if (apiKey) {
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent(payload);
+      return response.text || "";
+    } catch (err) {
+      console.warn("Local Gemini call failed. Attempting secure Supabase Edge proxy fallback...", err);
+    }
+  }
+
+  // 2. Direct secure path via Supabase Edge Function (Keeps API key 100% hidden in APK/Production)
+  const { data, error } = await supabase.functions.invoke('gemini-proxy', {
+    body: {
+      action: 'generateContent',
+      payload: {
+        model: payload.model,
+        contents: payload.contents,
+        config: payload.config
+      }
+    }
+  });
+
+  if (error) {
+    throw new Error(error.message || "Hakuna muunganisho wa AI.");
+  }
+
+  if (data?.error) {
+    throw new Error(data.error);
+  }
+
+  return data?.text || "";
+}
 
 export interface ExtractedProduct {
   name: string;
@@ -64,7 +98,7 @@ export async function auditProductsFromImage(base64Image: string, mimeType: stri
   try {
     const inventoryContext = currentInventory.map(i => `${i.name} (In system: ${i.stock})`).join(", ");
     
-    const response = await ai.models.generateContent({
+    const responseText = await runGeminiWithSecureProxy({
       model: "gemini-3-flash-preview",
       contents: [
         {
@@ -97,8 +131,8 @@ export async function auditProductsFromImage(base64Image: string, mimeType: stri
       }
     });
 
-    if (!response.text) return [];
-    const result = JSON.parse(response.text);
+    if (!responseText) return [];
+    const result = JSON.parse(responseText);
     return result.audits || [];
   } catch (error: any) {
     console.error("Audit Error:", error);
@@ -108,11 +142,7 @@ export async function auditProductsFromImage(base64Image: string, mimeType: stri
 
 export async function extractProductsFromImage(base64Image: string, mimeType: string): Promise<ExtractedProduct[]> {
   try {
-    if (!apiKey) {
-      throw new Error("Gemini API Key haijapatikana. Tafadhali wasiliana na bosi wako au angalia Settings.");
-    }
-
-    const response = await ai.models.generateContent({
+    const responseText = await runGeminiWithSecureProxy({
       model: "gemini-3-flash-preview",
       contents: [
         {
@@ -148,11 +178,11 @@ export async function extractProductsFromImage(base64Image: string, mimeType: st
       }
     });
 
-    if (!response.text) {
+    if (!responseText) {
       throw new Error("AI haikuweza kutoa majibu yoyote kutoka kwenye picha hii.");
     }
 
-    const result = JSON.parse(response.text);
+    const result = JSON.parse(responseText);
     return result.products || [];
   } catch (error: any) {
     console.error("Gemini AI Extraction Error:", error);

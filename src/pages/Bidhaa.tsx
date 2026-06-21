@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useDeferredValue } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Product } from '../db';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatInputNumber, parseInputNumber } from '../utils/format';
 import { getValidStock, getSales30DaysVelocityMap, getDynamicThreshold } from '../utils/stock';
 import { Plus, Search, Edit, Trash2, AlertCircle, FileDown, Upload, Clock, Calendar, Camera, Zap, Send, RefreshCw, TrendingUp } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -55,6 +55,7 @@ export default function Bidhaa() {
   const [batchModalProduct, setBatchModalProduct] = useState<Product | null>(null);
   const [stockToAdd, setStockToAdd] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [isLossModalOpen, setIsLossModalOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [listHeight, setListHeight] = useState(500);
@@ -81,15 +82,7 @@ export default function Bidhaa() {
   const [formExpiryDate, setFormExpiryDate] = useState('');
   const [formNotifyDays, setFormNotifyDays] = useState('30');
 
-  const formatInputNumber = (val: string) => {
-    const num = val.replace(/[^0-9]/g, '');
-    if (!num) return '';
-    return Number(num).toLocaleString();
-  };
 
-  const parseInputNumber = (val: string) => {
-    return Number(val.replace(/,/g, '')) || 0;
-  };
 
   const filteredProducts = useMemo(() => {
     const s = deferredSearch.toLowerCase();
@@ -105,6 +98,10 @@ export default function Bidhaa() {
       return aName.localeCompare(bName);
     });
   }, [products, deferredSearch]);
+
+  const lossProducts = useMemo(() => {
+    return products.filter(p => p.sell_price < p.buy_price);
+  }, [products]);
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -285,7 +282,7 @@ export default function Bidhaa() {
     
     return (
       <div style={style} className="px-1">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center h-[110px]">
+        <div className={`bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center h-[110px] ${product.sell_price < product.buy_price ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse' : 'border-gray-100'}`}>
           <div className="flex-1 min-w-0 mr-4">
             <h3 className="font-bold text-gray-800 truncate">{product.name}</h3>
             <div className="text-sm text-gray-500 mt-1">
@@ -314,7 +311,10 @@ export default function Bidhaa() {
                 </button>
               )}
               {isLow && (
-                <AlertCircle className="w-4 h-4 text-red-500 ml-2 animate-pulse" />
+                <span title="Stock Iko Chini"><AlertCircle className="w-4 h-4 text-red-500 ml-2 animate-pulse" /></span>
+              )}
+              {product.sell_price < product.buy_price && (
+                <span title="Inauzwa kwa Hasara"><AlertCircle className="w-4 h-4 text-red-600 ml-2 animate-pulse" /></span>
               )}
             </div>
           </div>
@@ -584,7 +584,7 @@ export default function Bidhaa() {
               </div>
             </div>
           )}
-          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl mt-6">
+          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl mt-6 cursor-pointer touch-manipulation select-none active:scale-95 transition-all" style={{ WebkitTapHighlightColor: 'transparent' }}>
             Hifadhi Bidhaa
           </button>
         </form>
@@ -600,9 +600,9 @@ export default function Bidhaa() {
             {isBoss() && products.length > 0 && (
               <button 
                 onClick={handleDeleteAll}
-                className="bg-red-50 text-red-600 p-2 rounded-full border border-red-100 shrink-0"
+                className="bg-red-50 text-red-600 p-2 rounded-full border border-red-100 shrink-0 cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
                 title="Futa Bidhaa Zote"
-              >
+               style={{ WebkitTapHighlightColor: 'transparent' }}>
                 <Trash2 className="w-6 h-6" />
               </button>
             )}
@@ -651,9 +651,18 @@ export default function Bidhaa() {
             <Plus className="w-6 h-6" />
           </button>
         </div>
-        <div className="flex justify-center">
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-white px-3 py-0.5 rounded-full border border-gray-100 shadow-sm leading-none">
-            Stock: <span className="text-gray-900">{products.length}</span>
+        <div className={`flex items-center px-2 ${lossProducts.length > 0 ? 'justify-between' : 'justify-center'}`}>
+          {lossProducts.length > 0 && (
+            <button 
+              onClick={() => setIsLossModalOpen(true)}
+              className="flex items-center space-x-1 border border-red-200 bg-red-50 text-red-600 px-3 py-1 rounded-full shadow-sm cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+            >
+              <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+              <span className="text-[10px] font-black uppercase tracking-wider">Hasara: {lossProducts.length}</span>
+            </button>
+          )}
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] bg-white px-3 py-1 rounded-full border border-gray-100 shadow-sm leading-none flex items-center">
+            Stock: <span className="text-gray-900 ml-1">{products.length}</span>
           </span>
         </div>
       </div>
@@ -706,7 +715,7 @@ export default function Bidhaa() {
               type="submit"
               disabled={!quickAddText.trim() || isProcessingQuickAdd}
               className={`p-2 rounded-xl transition-all ${quickAddText.trim() ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-400'}`}
-            >
+             style={{ WebkitTapHighlightColor: 'transparent' }}>
               {isProcessingQuickAdd ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </button>
           </form>
@@ -766,8 +775,8 @@ export default function Bidhaa() {
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100"
-                >
+                  className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100 cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+                 style={{ WebkitTapHighlightColor: 'transparent' }}>
                   Ongeza
                 </button>
               </div>
@@ -870,6 +879,45 @@ export default function Bidhaa() {
             showToast('Bidhaa zako zimeongezwa kwa mafanikio!', 'success');
           }}
         />
+      )}
+
+      {/* Loss Modal */}
+      {isLossModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200 shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center bg-red-50">
+              <AlertCircle className="w-6 h-6 text-red-500 mr-2" />
+              <h2 className="text-lg font-bold text-red-700">Bidhaa Zinazouzwa kwa Hasara</h2>
+            </div>
+            
+            <div className="p-4 overflow-y-auto flex-1">
+              {lossProducts.length > 0 ? (
+                <div className="space-y-3">
+                  {lossProducts.map(p => (
+                    <div key={p.id} className="p-3 bg-red-50/50 border border-red-100 rounded-xl">
+                      <h3 className="font-bold text-gray-800 text-sm truncate mb-1">{p.name}</h3>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-500">Kununua: <span className="font-bold text-gray-700">{formatCurrency(p.buy_price, currency)}</span></span>
+                        <span className="text-gray-500">Kuuza: <span className="font-bold text-red-600">{formatCurrency(p.sell_price, currency)}</span></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">Hakuna bidhaa inauzwa hasara.</p>
+              )}
+            </div>
+            
+            <div className="p-4 bg-gray-50 border-t border-gray-100">
+              <button 
+                onClick={() => setIsLossModalOpen(false)}
+                className="w-full py-4 bg-gray-800 text-white font-bold rounded-xl shadow-lg cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
+              >
+                Funga
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Stock Audit Modal */}
