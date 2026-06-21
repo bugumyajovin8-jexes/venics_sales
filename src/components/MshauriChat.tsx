@@ -820,49 +820,12 @@ export default function MshauriChat() {
   }, [isOpen]);
 
   const [isTyping, setIsTyping] = useState(false);
-  const [isAiEnabled, setIsAiEnabled] = useState(true); // Enabled by default to offer secure smart consulting!
+  const [isAiEnabled, setIsAiEnabled] = useState(false);
 
-  const runGeminiQuery = async (contents: any, systemInstruction: string) => {
-    const localKey = import.meta.env.VITE_MY_GEMINI_KEY;
-    if (localKey) {
-      try {
-        const client = new GoogleGenAI({ apiKey: localKey });
-        const response = await client.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents,
-          config: {
-            systemInstruction,
-            temperature: 0.7,
-          }
-        });
-        return response.text;
-      } catch (err) {
-        console.warn("Local Gemini call failed. Trying secure Supabase Edge proxy fallback...", err);
-      }
-    }
-
-    // Call Supabase Edge Function Proxy (keeps Gemini key 100% secure in APK / Production)
-    const { data, error } = await supabase.functions.invoke('gemini-proxy', {
-      body: {
-        action: 'generateContent',
-        payload: {
-          model: "gemini-2.0-flash",
-          contents,
-          config: {
-            systemInstruction,
-            temperature: 0.7,
-          }
-        }
-      }
-    });
-
-    if (error) {
-      throw new Error(error.message || "Hakuna muunganisho wa AI.");
-    }
-    if (data?.error) {
-      throw new Error(data.error);
-    }
-    return data?.text || "";
+  const getGeminiClient = () => {
+    const key = import.meta.env.VITE_MY_GEMINI_KEY;
+    if (!key) return null;
+    return new GoogleGenAI({ apiKey: key });
   };
 
   const [lastIntent, setLastIntent] = useState<'sales' | 'expenses' | 'debts' | 'stock' | 'behavior' | 'bestselling' | 'unknown'>('unknown');
@@ -2628,7 +2591,7 @@ export default function MshauriChat() {
     setIsTyping(true);
 
     const isHardQuery = intent === 'UNKNOWN';
-    const isGeminiEnabledAndFound = isAiEnabled;
+    const isGeminiEnabledAndFound = isAiEnabled && !!getGeminiClient();
     const isUnresolvedQuery = isHardQuery && !isGeminiEnabledAndFound;
 
     // Save user prompt to IndexedDB
@@ -2641,7 +2604,31 @@ export default function MshauriChat() {
     );
 
     if (isAiEnabled && isHardQuery) {
+      // ... existing Gemini logic ...
       try {
+        const client = getGeminiClient();
+        if (!client) {
+          setTimeout(async () => {
+            const botMsgId = uuidv4();
+            const botResponseText = (
+              <div className="space-y-2 text-slate-700">
+                <p className="font-semibold text-rose-600">🚨 Modi ya AI Imewashwa lakini ufunguo haujapatikana!</p>
+                <p className="text-sm">Tafadhali weka API Key yako ya siri inayoitwa <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-xs">VITE_MY_GEMINI_KEY</code> kwenye jopo la siri la AI Studio (Settings &gt; Secrets), kisha uwashe tena AI duka lako lipate ufumbuzi wa kiakili!</p>
+              </div>
+            );
+            const botResponse: Message = {
+              id: botMsgId,
+              sender: 'bot',
+              text: botResponseText,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, botResponse]);
+            setIsTyping(false);
+            await saveMessageToDb(botMsgId, 'bot', '🚨 Modi ya AI Imewashwa lakini ufunguo haujapatikana!', 'text', {});
+          }, 600);
+          return;
+        }
+
         const totalProductsCount = products.length;
         const lowStockProductsText = products.filter(p => p.stock <= p.min_stock).slice(0, 15).map(p => `${p.name} (Baki: ${p.stock}, Min: ${p.min_stock})`).join(", ");
         const totalRevenueVal = sales.filter(s => s.isDeleted !== 1).reduce((acc, s) => acc + s.total_amount, 0);
@@ -2662,9 +2649,16 @@ Takwimu duka hivi sasa:
 Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
 `;
 
-        const responseText = await runGeminiQuery(text, shopContext);
+        const response = await client.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: text,
+          config: {
+            systemInstruction: shopContext,
+            temperature: 0.7,
+          }
+        });
 
-        const replyText = responseText || "Samahani Boss, nilipata hitilafu kidogo wakati wa kuchambua data yako halisi ya mifumo. Tafadhali jaribu tena.";
+        const replyText = response.text || "Samahani Boss, nilipata hitilafu kidogo wakati wa kuchambua data yako halisi ya mifumo. Tafadhali jaribu tena.";
         const botMsgId = uuidv4();
         const botResponse: Message = {
           id: botMsgId,
@@ -2681,7 +2675,7 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
         console.error("Gemini API call failed:", err);
         setTimeout(async () => {
           const botMsgId = uuidv4();
-          const botResponseText = `Hitilafu ya Kiufundi: Nimeshindwa kuunganisha huduma ya AI hivi sasa. Tafadhali hakikisha kuwa duka lako lina siri za (Supabase Edge secrets) zilizoandaliwa au una mtandao wa kutosha.`;
+          const botResponseText = `Hitilafu ya Kiufundi: Nimeshindwa kuunganisha huduma ya AI hivi sasa. Tafadhali hakikisha kuwa funguo yako ya siri (VITE_MY_GEMINI_KEY) ni sahihi au una mtandao wa kutosha.`;
           const botResponse: Message = { id: botMsgId, sender: 'bot', text: botResponseText, timestamp: new Date() };
           setMessages(prev => [...prev, botResponse]);
           setIsTyping(false);
