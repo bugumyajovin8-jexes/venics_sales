@@ -1453,7 +1453,7 @@ export default function Historia() {
               {/* Top Bar with Date Selector and Close Button */}
               <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
                 <div className="flex-1 flex items-center space-x-2.5">
-                  <span className="text-xs font-black text-gray-500 uppercase flex-shrink-0">Andika hapa tarehe ya mauzo ya nyuma:</span>
+                  <span className="text-xs font-black text-gray-500 uppercase flex-shrink-0">Andika tarehe:</span>
                   <input
                     type="date"
                     value={backdatedSaleDate}
