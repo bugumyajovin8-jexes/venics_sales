@@ -221,6 +221,11 @@ export class TelemetryService {
    * This operates silently (without scheduling a new sync recursively) to avoid infinite loops.
    */
   static async trackNetworkUsage(direction: 'push' | 'pull', tableName: string, payload: any, rowsCount: number) {
+    // CRITICAL: DO NOT track network usage for saas_telemetry table requests.
+    // Doing so creates an infinite circular loop:
+    // Pushing/Syncing saas_telemetry -> logs a telemetry record -> adds unsynced item to Dexie -> synced in next loop -> repeats forever.
+    if (tableName === 'saas_telemetry') return;
+
     try {
       const state = useStore.getState();
       const user = state.user;
