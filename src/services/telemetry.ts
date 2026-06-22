@@ -215,4 +215,49 @@ export class TelemetryService {
       mask_phone: phone.substring(0, 4) + '****' + phone.substring(phone.length - 2),
     });
   }
+
+  /**
+   * Tracks network egress/ingress data usage per table as requested by the SaaS owner.
+   * This operates silently (without scheduling a new sync recursively) to avoid infinite loops.
+   */
+  static async trackNetworkUsage(direction: 'push' | 'pull', tableName: string, payload: any, rowsCount: number) {
+    try {
+      const state = useStore.getState();
+      const user = state.user;
+      if (!user?.shopId) return;
+
+      let bytes = 0;
+      if (payload) {
+        try {
+          const str = typeof payload === 'string' ? payload : JSON.stringify(payload);
+          bytes = new TextEncoder().encode(str).length;
+        } catch (_) {}
+      }
+
+      const telemetryLog = {
+        id: uuidv4(),
+        shop_id: user.shopId,
+        user_id: user.id || 'anonymous',
+        user_name: user.name || 'User',
+        feature_key: 'network_usage',
+        details: {
+          timestamp: new Date().toISOString(),
+          direction,
+          table_name: tableName,
+          bytes,
+          rows_count: rowsCount,
+          estimated_total_bytes: bytes + (direction === 'pull' ? 350 : 450), // estimate general headers / packet overhead
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        synced: 0,
+      };
+
+      await db.saasTelemetry.add(telemetryLog);
+    } catch (error: any) {
+      if (error?.name === 'NotFoundError') return;
+      console.error('[Telemetry] Failed to record network usage:', error);
+    }
+  }
 }
+
