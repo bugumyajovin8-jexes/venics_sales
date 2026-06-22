@@ -10,7 +10,7 @@ import { getSales30DaysVelocityMap } from '../utils/stock';
 // Register immediate write-through trigger for index mutations (Push-on-Commit)
 registerLocalWriteTrigger(() => {
   console.log('⚡ Write-Through Trigger received. Scheduling critical sync in 500ms...');
-  SyncService.scheduleCriticalSync(true);
+  SyncService.scheduleCriticalSync(false);
 });
 
 type DexieTable = {
@@ -330,8 +330,17 @@ export class SyncService {
         if (table) {
           const unsyncedCount = await table.where('synced').equals(0).count();
           if (unsyncedCount > 0) {
-            await this.pushTable(tableName, table);
-            anyPushed = true;
+            try {
+              await this.pushTable(tableName, table);
+              anyPushed = true;
+            } catch (error) {
+              const isNonCritical = ['saas_telemetry', 'audit_logs', 'assistant_chats'].includes(tableName);
+              if (isNonCritical) {
+                console.warn(`[SyncService] Bypassed non-critical push failure for ${tableName} to keep main sync healthy:`, error);
+              } else {
+                throw error;
+              }
+            }
           }
         }
       }
@@ -560,17 +569,45 @@ export class SyncService {
 
     let cursor = 0;
     for (const batch of this.chunk(remoteBatch, PUSH_CHUNK_SIZE)) {
-      if (tableName === 'audit_logs') {
-        await this.runWithRetry(() => supabase.from(tableName).insert(batch), `push ${tableName}`);
-      } else {
-        await this.runWithRetry(() => supabase.from(tableName).upsert(batch, { onConflict: 'id' }), `push ${tableName}`);
-      }
+      try {
+        if (tableName === 'audit_logs') {
+          await this.runWithRetry(() => supabase.from(tableName).insert(batch), `push ${tableName}`);
+        } else {
+          await this.runWithRetry(() => supabase.from(tableName).upsert(batch, { onConflict: 'id' }), `push ${tableName}`);
+        }
 
-      await TelemetryService.trackNetworkUsage('push', tableName, batch, batch.length);
+        await TelemetryService.trackNetworkUsage('push', tableName, batch, batch.length);
 
-      const syncedRows = unsynced.slice(cursor, cursor + batch.length);
-      for (const record of syncedRows) {
-        await table.update(record.id, { synced: 1 });
+        const syncedRows = unsynced.slice(cursor, cursor + batch.length);
+        for (const record of syncedRows) {
+          await table.update(record.id, { synced: 1 });
+        }
+      } catch (error: any) {
+        const isNonCritical = ['saas_telemetry', 'audit_logs', 'assistant_chats'].includes(tableName);
+        if (isNonCritical) {
+          console.warn(`[SyncService] push failed for non-critical ${tableName}:`, error);
+
+          // Handle RLS/Permission errors specifically to prevent infinite failure loops and excessive egress costs
+          const isPermError = 
+            error?.status === 403 || 
+            error?.code === '42501' ||
+            error?.code === 'PGRST301' ||
+            (error?.message || '').toLowerCase().includes('row-level security') ||
+            (error?.message || '').toLowerCase().includes('violates row-level security');
+
+          if (isPermError) {
+            console.warn(`[SyncService] Permanent RLS policy restriction or permission block on ${tableName}. auto-marking batch as synced in local DB to stop egress/sync storm.`);
+            const syncedRows = unsynced.slice(cursor, cursor + batch.length);
+            for (const record of syncedRows) {
+              await table.update(record.id, { synced: 1 });
+            }
+          } else {
+            // Re-throw transient issues (e.g. timeout, disconnect) to try again later
+            throw error;
+          }
+        } else {
+          throw error;
+        }
       }
       cursor += batch.length;
     }
