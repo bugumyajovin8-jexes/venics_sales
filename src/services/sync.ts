@@ -2,6 +2,7 @@ import { db, AuditLog, registerLocalWriteTrigger } from '../db';
 import { useStore } from '../store';
 import { supabase } from '../supabase';
 import { LicenseService } from './license';
+import { TelemetryService } from './telemetry';
 import { v4 as uuidv4 } from 'uuid';
 import { subDays } from 'date-fns';
 import { getSales30DaysVelocityMap } from '../utils/stock';
@@ -55,6 +56,23 @@ export class SyncService {
   private static lastCriticalSyncStartedAt = 0;
   private static lastBackgroundSyncStartedAt = 0;
   private static lastFullSyncStartedAt = 0;
+
+  // Track last successful pull times to prevent egress-heavy rapid polling
+  private static lastTablePullTime: Record<string, number> = {};
+
+  // Fine-tuned pull throttle intervals per table to conserve user budget & bandwidth
+  private static readonly PULL_THROTTLE_MS: Record<string, number> = {
+    sales: 45_000,          // 45 seconds default
+    sale_items: 45_000,
+    products: 45_000,
+    debt_payments: 45_000,
+    assistant_chats: 30_000, // Chats can be slightly faster for interactive feel
+    shops: 300_000,         // Shops static config rarely changes (5 min)
+    users: 300_000,         // User profiles rarely change (5 min)
+    expenses: 120_000,      // Expenses are non-interactive back-off records (2 min)
+    features: 300_000,      // SaaS features (5 min)
+    audit_logs: 300_000,    // High volume trailing logs (5 min)
+  };
 
   private static pendingAuditLogs: any[] = [];
   private static auditLogFlushTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -148,9 +166,22 @@ export class SyncService {
 
   private static async drainQueue(): Promise<void> {
     while (this.requestQueue.length > 0) {
-      const request = this.requestQueue.shift();
-      if (!request) continue;
-      await this.runOneSync(request.force, request.scope);
+      // Coalesce all enqueued requests to avoid running redundant sequential full/critical syncs
+      let force = false;
+      let highestScope: SyncScope = 'background';
+      for (const req of this.requestQueue) {
+        force = force || req.force;
+        if (req.scope === 'critical') {
+          highestScope = 'critical';
+        } else if (req.scope === 'full' && highestScope !== 'critical') {
+          highestScope = 'full';
+        }
+      }
+      
+      // Clear the queue as our consolidated run will handle all requested sync operations
+      this.requestQueue = [];
+      
+      await this.runOneSync(force, highestScope);
     }
   }
 
@@ -508,6 +539,7 @@ export class SyncService {
       });
 
       await this.runWithRetry(() => supabase.rpc('sync_products_with_deltas', { products_data: productsData }), 'sync_products_with_deltas');
+      await TelemetryService.trackNetworkUsage('push', 'products', productsData, productsData.length);
 
       for (const record of unsynced) {
         const current = await table.get(record.id);
@@ -534,6 +566,8 @@ export class SyncService {
         await this.runWithRetry(() => supabase.from(tableName).upsert(batch, { onConflict: 'id' }), `push ${tableName}`);
       }
 
+      await TelemetryService.trackNetworkUsage('push', tableName, batch, batch.length);
+
       const syncedRows = unsynced.slice(cursor, cursor + batch.length);
       for (const record of syncedRows) {
         await table.update(record.id, { synced: 1 });
@@ -543,6 +577,26 @@ export class SyncService {
   }
 
   private static async pullTable(tableName: string, table: DexieTable, shopId: string, lastSyncDate: string, force: boolean) {
+    // assistant_chats should only be pushed to, never pulled from remote Supabase DB to reduce egress/bandwidth
+    if (tableName === 'assistant_chats') {
+      return;
+    }
+
+    if (tableName === 'audit_logs') {
+      const role = useStore.getState().user?.role;
+      if (role !== 'boss' && role !== 'admin' && role !== 'superadmin') return;
+    }
+
+    // Throttle pull operations for each table unless explicitly forced to save user egress bandwidth
+    const now = Date.now();
+    const throttleInterval = this.PULL_THROTTLE_MS[tableName] || 60_000;
+    const lastPull = this.lastTablePullTime[tableName] || 0;
+
+    if (!force && (now - lastPull < throttleInterval)) {
+      // Skip query execution as this table was pulled successfully very recently
+      return;
+    }
+
     let hasMore = true;
     let offset = 0;
     let newestRemoteCursorMs = 0;
@@ -558,8 +612,6 @@ export class SyncService {
       }
 
       if (tableName === 'audit_logs') {
-        const role = useStore.getState().user?.role;
-        if (role !== 'boss' && role !== 'admin' && role !== 'superadmin') return;
         query = query.eq('is_deleted', false);
       }
 
@@ -578,6 +630,10 @@ export class SyncService {
       } catch (error) {
         console.error(`Error pulling ${tableName} (offset ${offset}):`, error);
         return;
+      }
+
+      if (data && data.length > 0) {
+        await TelemetryService.trackNetworkUsage('pull', tableName, data, data.length);
       }
 
       if (!data || data.length === 0) {
@@ -650,6 +706,9 @@ export class SyncService {
     } else if (newestRemoteCursorMs > 0) {
       await this.setTableSyncCursor(tableName, newestRemoteCursorMs);
     }
+
+    // Record the timestamp of successful table pulling completion to enforce throttled requests
+    this.lastTablePullTime[tableName] = now;
   }
 
   private static mapToRemote(tableName: string, data: any) {
