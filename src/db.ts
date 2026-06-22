@@ -256,8 +256,9 @@ export class PosDatabase extends Dexie {
     });
 
     // Write-Through Tracking Hooks
+    const EXCLUDED_SYNC_TRIGGER_TABLES = ['settings', 'license', 'saasTelemetry', 'auditLogs'];
     this.tables.forEach(table => {
-      if (table.name !== 'settings' && table.name !== 'license') {
+      if (!EXCLUDED_SYNC_TRIGGER_TABLES.includes(table.name)) {
         table.hook('creating', (primKey, obj: any) => {
           if (obj && obj.synced === 0) {
             triggerSyncCallback();
