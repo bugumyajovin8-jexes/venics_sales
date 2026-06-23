@@ -110,6 +110,84 @@ export default function App() {
     }
   }, []);
 
+  // Strategy 1: The version.json Polling & Intelligent Auto-Reload Strategy
+  useEffect(() => {
+    let baselineVersion: string | null = null;
+    let checkTimer: any = null;
+    let active = true;
+
+    const fetchVersion = async (): Promise<string | null> => {
+      try {
+        const res = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          return data.version || null;
+        }
+      } catch (err) {
+        console.warn('[VersionCheck] Failed to fetch version:', err);
+      }
+      return null;
+    };
+
+    const runCheck = async () => {
+      if (!active) return;
+      const latest = await fetchVersion();
+      if (!latest || !active) return;
+
+      if (!baselineVersion) {
+        baselineVersion = latest;
+        console.log('[VersionCheck] Baseline frontend version discovered:', baselineVersion);
+        return;
+      }
+
+      if (latest !== baselineVersion) {
+        console.log(`[VersionCheck] Newer frontend version available: ${latest} (active: ${baselineVersion})`);
+
+        const state = useStore.getState();
+        const isAtKikapu = window.location.href.includes('/kikapu') || window.location.pathname.includes('/kikapu');
+        const hasCartItems = state.cart && state.cart.length > 0;
+
+        if (isAtKikapu && hasCartItems) {
+          console.log('[VersionCheck] Active sale in progress inside Kikapu cart. Deferring reload.');
+          return;
+        }
+
+        console.log('[VersionCheck] Performing programmatic intelligent update reload...');
+        window.location.reload();
+      }
+    };
+
+    const init = async () => {
+      const initial = await fetchVersion();
+      if (initial && active) {
+        baselineVersion = initial;
+        console.log('[VersionCheck] Established baseline version:', baselineVersion);
+      }
+
+      // Check version on a 5-minute interval
+      checkTimer = setInterval(runCheck, 300000);
+    };
+
+    void init();
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[VersionCheck] Window focused, validating active version...');
+        void runCheck();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      active = false;
+      if (checkTimer) {
+        clearInterval(checkTimer);
+      }
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
   const isAuthenticated = useStore(state => state.isAuthenticated);
   const user = useStore(state => state.user);
   const setAuth = useStore(state => state.setAuth);

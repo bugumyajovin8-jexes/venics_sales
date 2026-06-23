@@ -548,7 +548,6 @@ export class SyncService {
       });
 
       await this.runWithRetry(() => supabase.rpc('sync_products_with_deltas', { products_data: productsData }), 'sync_products_with_deltas');
-      await TelemetryService.trackNetworkUsage('push', 'products', productsData, productsData.length);
 
       for (const record of unsynced) {
         const current = await table.get(record.id);
@@ -575,8 +574,6 @@ export class SyncService {
         } else {
           await this.runWithRetry(() => supabase.from(tableName).upsert(batch, { onConflict: 'id' }), `push ${tableName}`);
         }
-
-        await TelemetryService.trackNetworkUsage('push', tableName, batch, batch.length);
 
         const syncedRows = unsynced.slice(cursor, cursor + batch.length);
         for (const record of syncedRows) {
@@ -667,10 +664,6 @@ export class SyncService {
       } catch (error) {
         console.error(`Error pulling ${tableName} (offset ${offset}):`, error);
         return;
-      }
-
-      if (data && data.length > 0) {
-        await TelemetryService.trackNetworkUsage('pull', tableName, data, data.length);
       }
 
       if (!data || data.length === 0) {
