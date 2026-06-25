@@ -50,6 +50,7 @@ const ALL_TABLES = [
 export class SyncService {
   private static activeSyncPromise: Promise<void> | null = null;
   private static requestQueue: SyncRequest[] = [];
+  private static inFlightProductDeltas: Map<string, number> = new Map();
   private static scheduledCriticalSync: ReturnType<typeof setTimeout> | null = null;
   private static scheduledBackgroundSync: ReturnType<typeof setTimeout> | null = null;
   private static scheduledFullSync: ReturnType<typeof setTimeout> | null = null;
@@ -540,23 +541,33 @@ export class SyncService {
     }
 
     if (tableName === 'products') {
-      const productsData = unsynced.map(record => {
-        const { synced, ...localData } = record;
-        const dataToSync = this.mapToRemote(tableName, localData);
-        dataToSync.stock_delta = record.stock_delta || 0;
-        return dataToSync;
-      });
-
-      await this.runWithRetry(() => supabase.rpc('sync_products_with_deltas', { products_data: productsData }), 'sync_products_with_deltas');
-
       for (const record of unsynced) {
-        const current = await table.get(record.id);
-        if (!current) continue;
-        const newDelta = (current.stock_delta || 0) - (record.stock_delta || 0);
-        await table.update(record.id, {
-          synced: newDelta === 0 ? 1 : 0,
-          stock_delta: newDelta,
+        this.inFlightProductDeltas.set(record.id, record.stock_delta || 0);
+      }
+
+      try {
+        const productsData = unsynced.map(record => {
+          const { synced, ...localData } = record;
+          const dataToSync = this.mapToRemote(tableName, localData);
+          dataToSync.stock_delta = record.stock_delta || 0;
+          return dataToSync;
         });
+
+        await this.runWithRetry(() => supabase.rpc('sync_products_with_deltas', { products_data: productsData }), 'sync_products_with_deltas');
+
+        for (const record of unsynced) {
+          const current = await table.get(record.id);
+          if (!current) continue;
+          const newDelta = (current.stock_delta || 0) - (record.stock_delta || 0);
+          await table.update(record.id, {
+            synced: newDelta === 0 ? 1 : 0,
+            stock_delta: newDelta,
+          });
+        }
+      } finally {
+        for (const record of unsynced) {
+          this.inFlightProductDeltas.delete(record.id);
+        }
       }
       return;
     }
@@ -698,7 +709,7 @@ export class SyncService {
           if (!existing) {
             const dataToStore: any = { ...localData, synced: 1 };
             if (tableName === 'products') {
-              dataToStore.stock_delta = localData.stock_delta || 0;
+              dataToStore.stock_delta = 0;
             }
             await table.put(dataToStore);
             continue;
@@ -707,8 +718,10 @@ export class SyncService {
           if (isRemoteNewer) {
             if (tableName === 'products' && hasUnsyncedChanges) {
               const pendingDelta = existing.stock_delta || 0;
+              const inFlightDelta = SyncService.inFlightProductDeltas.get(record.id) || 0;
+              const netDelta = pendingDelta - inFlightDelta;
               const remoteStock = Number(record.stock) || 0;
-              const mergedStock = Math.max(0, remoteStock + pendingDelta);
+              const mergedStock = Math.max(0, remoteStock + netDelta);
 
               await table.put({
                 ...existing,
@@ -718,7 +731,11 @@ export class SyncService {
                 synced: 0,
               });
             } else if (!hasUnsyncedChanges) {
-              await table.put({ ...existing, ...localData, synced: 1 });
+              const dataToStore = { ...existing, ...localData, synced: 1 };
+              if (tableName === 'products') {
+                dataToStore.stock_delta = 0;
+              }
+              await table.put(dataToStore);
             }
           }
         }
