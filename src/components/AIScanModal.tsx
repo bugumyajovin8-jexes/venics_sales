@@ -207,7 +207,7 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
                 <ul className="text-xs text-blue-700 space-y-2 list-disc list-inside">
                   <li>Hakikisha kuna mwanga wa kutosha.</li>
                   <li>Weka risiti iwe imenyooka na ionekane yote.</li>
-                  <li>Venics Smart Assistant atatambua Majina, Bei za Kununua, na Idadi zenyewe.</li>
+                  <li>Venics Smart Assistant itatambua Majina, Bei za Kununua, na Idadi zenyewe.</li>
                 </ul>
               </div>
             </div>
@@ -220,7 +220,7 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
                 <VenicsLogo size={80} animate="loading" />
               </div>
               <div className="text-center pt-2">
-                <p className="text-lg font-bold text-gray-900">Venics Smart Assistant Unasoma Picha...</p>
+                <p className="text-lg font-bold text-gray-900">Venics Smart Assistant Inasoma Picha...</p>
                 <p className="text-sm text-gray-500">Hapa tunajaza taarifa zako chache</p>
               </div>
             </div>

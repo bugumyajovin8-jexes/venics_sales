@@ -65,7 +65,8 @@ function PaymentBreakdownWidget({ shopId }: { shopId: string }) {
   return (
     <div className="space-y-4">
       <button 
-        onClick={() => setIsOpen(!isOpen)}
+        onTouchStart={(e) => { e.preventDefault(); setIsOpen(!isOpen); }}
+        onClick={(e) => { e.preventDefault(); setIsOpen(!isOpen); }}
         className="w-full bg-indigo-50 text-indigo-700 font-bold py-5 rounded-[2rem] flex items-center justify-between px-6 transition-all active:scale-95 border border-indigo-100"
       >
         <div className="flex items-center">
@@ -86,7 +87,8 @@ function PaymentBreakdownWidget({ shopId }: { shopId: string }) {
         >
           <div className="flex space-x-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
             <button
-              onClick={() => setPeriod('today')}
+              onTouchStart={(e) => { e.preventDefault(); setPeriod('today'); }}
+              onClick={(e) => { e.preventDefault(); setPeriod('today'); }}
               className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer touch-manipulation select-none active:scale-95 ${
                 period === 'today' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -95,7 +97,8 @@ function PaymentBreakdownWidget({ shopId }: { shopId: string }) {
               Leo
             </button>
             <button
-              onClick={() => setPeriod('yesterday')}
+              onTouchStart={(e) => { e.preventDefault(); setPeriod('yesterday'); }}
+              onClick={(e) => { e.preventDefault(); setPeriod('yesterday'); }}
               className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer touch-manipulation select-none active:scale-95 ${
                 period === 'yesterday' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -104,7 +107,8 @@ function PaymentBreakdownWidget({ shopId }: { shopId: string }) {
               Jana
             </button>
             <button
-              onClick={() => setPeriod('this_month')}
+              onTouchStart={(e) => { e.preventDefault(); setPeriod('this_month'); }}
+              onClick={(e) => { e.preventDefault(); setPeriod('this_month'); }}
               className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer touch-manipulation select-none active:scale-95 ${
                 period === 'this_month' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -113,7 +117,8 @@ function PaymentBreakdownWidget({ shopId }: { shopId: string }) {
               Mwezi Huu
             </button>
             <button
-              onClick={() => setPeriod('last_month')}
+              onTouchStart={(e) => { e.preventDefault(); setPeriod('last_month'); }}
+              onClick={(e) => { e.preventDefault(); setPeriod('last_month'); }}
               className={`flex-shrink-0 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer touch-manipulation select-none active:scale-95 ${
                 period === 'last_month' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -517,7 +522,8 @@ export default function ExecutiveDashboard() {
             </h3>
             {(insights.lossProductsAlerts.length > 0 || insights.implausibleProductsAlerts.length > 0) && (
               <button
-                onClick={handleVerifyAllProductPricing}
+                onTouchStart={(e) => { e.preventDefault(); handleVerifyAllProductPricing(); }}
+                onClick={(e) => { e.preventDefault(); handleVerifyAllProductPricing(); }}
                 className="bg-red-200 text-red-950 px-4 py-2 rounded-2xl text-xs font-black hover:bg-red-300 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
                 title="Sema bei zote za bidhaa zilizoorodheshwa zipo sawa"
               >
@@ -552,7 +558,8 @@ export default function ExecutiveDashboard() {
                   </span>
                 </div>
                 <button
-                  onClick={() => handleVerifyProductPricing(alert.id)}
+                  onTouchStart={(e) => { e.preventDefault(); handleVerifyProductPricing(alert.id); }}
+                  onClick={(e) => { e.preventDefault(); handleVerifyProductPricing(alert.id); }}
                   className="shrink-0 bg-red-200 text-red-900 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-red-300 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Check className="w-3.5 h-3.5" /> Bei ipo Sawa
@@ -569,7 +576,8 @@ export default function ExecutiveDashboard() {
                   </span>
                 </div>
                 <button
-                  onClick={() => handleVerifyProductPricing(alert.id)}
+                  onTouchStart={(e) => { e.preventDefault(); handleVerifyProductPricing(alert.id); }}
+                  onClick={(e) => { e.preventDefault(); handleVerifyProductPricing(alert.id); }}
                   className="shrink-0 bg-amber-200 text-amber-905 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-amber-300 active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Check className="w-3.5 h-3.5" /> Bei ipo Sawa
@@ -615,7 +623,8 @@ export default function ExecutiveDashboard() {
             </h3>
           </div>
           <button
-            onClick={() => setShowEmployeeReports(true)}
+            onTouchStart={(e) => { e.preventDefault(); setShowEmployeeReports(true); }}
+            onClick={(e) => { e.preventDefault(); setShowEmployeeReports(true); }}
             className="w-full bg-blue-50 text-blue-700 font-bold py-4 rounded-2xl flex items-center justify-center transition-colors"
           >
             Tazama Ripoti za Wafanyakazi (Zamu)
@@ -631,7 +640,8 @@ export default function ExecutiveDashboard() {
         transition={{ delay: 0.4 }}
       >
         <button
-          onClick={() => navigate('/audit-logs')}
+          onTouchStart={(e) => { e.preventDefault(); navigate('/audit-logs'); }}
+          onClick={(e) => { e.preventDefault(); navigate('/audit-logs'); }}
           className="w-full bg-blue-600 text-white p-5 rounded-[2rem] shadow-sm flex items-center justify-between transition-colors"
         >
           <div className="flex items-center">

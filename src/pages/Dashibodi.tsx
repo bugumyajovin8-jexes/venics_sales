@@ -295,7 +295,8 @@ export default function Dashibodi() {
             {license ? (
               <>
                 <div 
-                  onClick={handleLicenseSync}
+                  onTouchStart={(e) => { e.preventDefault(); handleLicenseSync(); }}
+                  onClick={(e) => { e.preventDefault(); handleLicenseSync(); }}
                   className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium w-fit cursor-pointer  transition-opacity active:scale-[0.98] select-none ${daysRemaining > 5 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
                 >
                   {isSyncingLicense ? (
@@ -324,7 +325,8 @@ export default function Dashibodi() {
         <div className="flex space-x-2">
           {isExpiryEnabled && (expiredBatchesCount > 0 || expiringSoonBatchesCount > 0) && (
             <div 
-              onClick={() => navigate('/zaidi', { state: { openExpiryList: true } })}
+              onTouchStart={(e) => { e.preventDefault(); navigate('/zaidi', { state: { openExpiryList: true } }); }}
+              onClick={(e) => { e.preventDefault(); navigate('/zaidi', { state: { openExpiryList: true } }); }}
               className="relative cursor-pointer"
             >
               <div className={`${expiredBatchesCount > 0 ? 'bg-red-100' : 'bg-orange-100'} p-2 rounded-full`}>
@@ -337,7 +339,8 @@ export default function Dashibodi() {
           )}
           {lowStockProducts.length > 0 && (
             <div 
-              onClick={() => setShowLowStockModal(true)}
+              onTouchStart={(e) => { e.preventDefault(); setShowLowStockModal(true); }}
+              onClick={(e) => { e.preventDefault(); setShowLowStockModal(true); }}
               className="relative cursor-pointer"
             >
               <div className="bg-red-100 p-2 rounded-full">
@@ -393,7 +396,16 @@ export default function Dashibodi() {
       {/* Quick Access Buttons */}
       <div className="grid grid-cols-2 gap-4">
         <button 
-          onClick={() => {
+          onTouchStart={(e) => {
+            e.preventDefault();
+            if (!boss && !isFeatureEnabled('staff_expense_management')) {
+              showToast('Hauna ruhusa ya kuona/kuongeza matumizi.', 'error');
+            } else {
+              navigate('/matumizi');
+            }
+          }}
+          onClick={(e) => {
+            e.preventDefault();
             if (!boss && !isFeatureEnabled('staff_expense_management')) {
               showToast('Hauna ruhusa ya kuona/kuongeza matumizi.', 'error');
             } else {
@@ -410,7 +422,8 @@ export default function Dashibodi() {
           {!boss && !isFeatureEnabled('staff_expense_management') ? 'Matumizi (Zuiwa)' : 'Matumizi'}
         </button>
         <button 
-          onClick={() => navigate('/historia')}
+          onTouchStart={(e) => { e.preventDefault(); navigate('/historia'); }}
+          onClick={(e) => { e.preventDefault(); navigate('/historia'); }}
           className="flex items-center justify-center py-3.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-gray-700 active:scale-95 active:bg-gray-50 transition-all cursor-pointer select-none touch-manipulation"
         >
           <Clock className="w-4 h-4 mr-1.5 text-blue-500" />
@@ -423,7 +436,8 @@ export default function Dashibodi() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-800">Muhtasari wa Mwezi</h2>
           <button 
-            onClick={() => navigate('/historia')}
+            onTouchStart={(e) => { e.preventDefault(); navigate('/historia'); }}
+            onClick={(e) => { e.preventDefault(); navigate('/historia'); }}
             className="text-sm font-medium text-blue-600 flex items-center bg-blue-50 px-3 py-1 rounded-full"
           >
             Historia <ChevronRight className="w-4 h-4 ml-1" />
@@ -497,7 +511,8 @@ export default function Dashibodi() {
         <div className="space-y-3 mt-4">
           {pricingLossProducts.length > 0 && (
             <div 
-              onClick={() => setShowLossModal(true)}
+              onTouchStart={(e) => { e.preventDefault(); setShowLossModal(true); }}
+              onClick={(e) => { e.preventDefault(); setShowLossModal(true); }}
               className="p-3 bg-red-100 rounded-xl border border-red-200 flex items-start space-x-3 cursor-pointer transition-colors"
             >
               <AlertCircle className="text-red-600 w-5 h-5 shrink-0 mt-0.5 animate-pulse" />
@@ -512,7 +527,8 @@ export default function Dashibodi() {
 
           {pricingImplausibleProducts.length > 0 && (
             <div 
-              onClick={() => setShowImplausibleModal(true)}
+              onTouchStart={(e) => { e.preventDefault(); setShowImplausibleModal(true); }}
+              onClick={(e) => { e.preventDefault(); setShowImplausibleModal(true); }}
               className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-start space-x-3 cursor-pointer transition-colors"
             >
               <AlertCircle className="text-amber-600 w-5 h-5 shrink-0 mt-0.5" />
@@ -527,7 +543,8 @@ export default function Dashibodi() {
 
           {lowStockProducts.length > 0 && (
             <div 
-              onClick={() => setShowLowStockModal(true)}
+              onTouchStart={(e) => { e.preventDefault(); setShowLowStockModal(true); }}
+              onClick={(e) => { e.preventDefault(); setShowLowStockModal(true); }}
               className="p-3 bg-red-50 rounded-xl border border-red-100 flex items-start space-x-3 cursor-pointer transition-colors"
             >
               <AlertTriangle className="text-red-500 w-5 h-5 shrink-0 mt-0.5" />
@@ -542,7 +559,8 @@ export default function Dashibodi() {
 
           {isExpiryEnabled && expiredBatchesCount > 0 && (
             <div 
-              onClick={() => navigate('/zaidi', { state: { openExpiryList: true } })}
+              onTouchStart={(e) => { e.preventDefault(); navigate('/zaidi', { state: { openExpiryList: true } }); }}
+              onClick={(e) => { e.preventDefault(); navigate('/zaidi', { state: { openExpiryList: true } }); }}
               className="p-3 bg-red-100 rounded-xl border border-red-200 flex items-start space-x-3 cursor-pointer transition-colors"
             >
               <Clock className="text-red-600 w-5 h-5 shrink-0 mt-0.5" />
@@ -557,7 +575,8 @@ export default function Dashibodi() {
 
           {isExpiryEnabled && expiringSoonBatchesCount > 0 && (
             <div 
-              onClick={() => navigate('/zaidi', { state: { openExpiryList: true } })}
+              onTouchStart={(e) => { e.preventDefault(); navigate('/zaidi', { state: { openExpiryList: true } }); }}
+              onClick={(e) => { e.preventDefault(); navigate('/zaidi', { state: { openExpiryList: true } }); }}
               className="p-3 bg-orange-50 rounded-xl border border-orange-100 flex items-start space-x-3 cursor-pointer transition-colors"
             >
               <Clock className="text-orange-500 w-5 h-5 shrink-0 mt-0.5" />

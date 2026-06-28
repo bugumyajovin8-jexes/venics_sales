@@ -823,9 +823,16 @@ export default function MshauriChat() {
   const [isAiEnabled, setIsAiEnabled] = useState(false);
 
   const getGeminiClient = () => {
-    const key = import.meta.env.VITE_MY_GEMINI_KEY;
+    const key = import.meta.env.VITE_MY_GEMINI_KEY || process.env.GEMINI_API_KEY;
     if (!key) return null;
-    return new GoogleGenAI({ apiKey: key });
+    return new GoogleGenAI({
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
   };
 
   const [lastIntent, setLastIntent] = useState<'sales' | 'expenses' | 'debts' | 'stock' | 'behavior' | 'bestselling' | 'unknown'>('unknown');
@@ -2650,7 +2657,7 @@ Maelekezo: Jibu kwa Kiswahili safi, fupi, na cha usaidizi.
 `;
 
         const response = await client.models.generateContent({
-          model: "gemini-2.0-flash",
+          model: "gemini-2.5-flash",
           contents: text,
           config: {
             systemInstruction: shopContext,

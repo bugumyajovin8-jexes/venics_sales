@@ -24,3 +24,5 @@ createRoot(document.getElementById('root')!).render(
     </HashRouter>
   </StrictMode>,
 );
+
+(window as any).__reactMounted = true;

@@ -236,7 +236,8 @@ export default function Madeni() {
                   <div className="flex justify-between items-center mb-1">
                     <p className="text-[10px] font-bold text-gray-400 uppercase">Bidhaa:</p>
                     <button 
-                      onClick={() => setShowHistory(showHistory === debt.id ? null : debt.id)}
+                      onTouchStart={(e) => { e.preventDefault(); setShowHistory(showHistory === debt.id ? null : debt.id); }}
+                      onClick={(e) => { e.preventDefault(); setShowHistory(showHistory === debt.id ? null : debt.id); }}
                       className="text-[10px] font-bold text-blue-600 uppercase flex items-center"
                     >
                       <History className="w-3 h-3 mr-1" /> Historia
@@ -268,21 +269,24 @@ export default function Madeni() {
                 
                 <div className="flex flex-wrap sm:flex-nowrap gap-2 pt-3 border-t border-gray-100">
                   <button 
-                    onClick={() => setSelectedDebt(debt)}
+                    onTouchStart={(e) => { e.preventDefault(); setSelectedDebt(debt); }}
+                    onClick={(e) => { e.preventDefault(); setSelectedDebt(debt); }}
                     className="flex-1 min-w-[80px] flex items-center justify-center text-[11px] font-bold text-blue-600 bg-blue-50 py-2.5 rounded-xl transition-all"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" />
                     Lipa Kidogo
                   </button>
                   <button 
-                    onClick={() => handleFullPayment(debt)}
+                    onTouchStart={(e) => { e.preventDefault(); handleFullPayment(debt); }}
+                    onClick={(e) => { e.preventDefault(); handleFullPayment(debt); }}
                     className="flex-1 min-w-[80px] flex items-center justify-center text-[11px] font-bold text-green-600 bg-green-50 py-2.5 rounded-xl transition-all"
                   >
                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
                     Lipa Zote
                   </button>
                   <button 
-                    onClick={() => openWhatsAppModal(debt, remaining)}
+                    onTouchStart={(e) => { e.preventDefault(); openWhatsAppModal(debt, remaining); }}
+                    onClick={(e) => { e.preventDefault(); openWhatsAppModal(debt, remaining); }}
                     className="flex-1 min-w-[130px] flex items-center justify-center text-[11px] font-bold text-emerald-700 bg-emerald-50 py-2.5 rounded-xl border border-emerald-100 transition-all shadow-sm"
                   >
                     <span className="mr-1 text-[13px]">💬</span>

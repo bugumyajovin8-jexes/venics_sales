@@ -236,7 +236,8 @@ export default function Matumizi() {
       <div className="p-4 pt-safe pt-safe-standalone h-full overflow-y-auto">
         <div className="flex items-center mb-6">
           <button 
-            onClick={() => setIsAdding(false)}
+            onTouchStart={(e) => { e.preventDefault(); setIsAdding(false); }}
+            onClick={(e) => { e.preventDefault(); setIsAdding(false); }}
             className="text-blue-600 font-medium mr-4"
           >
             Nyuma
@@ -313,13 +314,18 @@ export default function Matumizi() {
     <div className="p-4 flex flex-col h-full pt-safe pt-safe-standalone">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
-          <button onClick={() => navigate(-1)} className="mr-3 p-2 bg-white rounded-full shadow-sm">
+          <button 
+            onTouchStart={(e) => { e.preventDefault(); navigate(-1); }}
+            onClick={(e) => { e.preventDefault(); navigate(-1); }}
+            className="mr-3 p-2 bg-white rounded-full shadow-sm"
+          >
              <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-2xl font-bold text-gray-800">Matumizi</h1>
         </div>
         <button 
-          onClick={() => setIsAdding(true)}
+          onTouchStart={(e) => { e.preventDefault(); setIsAdding(true); }}
+          onClick={(e) => { e.preventDefault(); setIsAdding(true); }}
           className="bg-blue-600 text-white p-3 rounded-2xl shadow-lg shadow-blue-100"
         >
           <Plus className="w-6 h-6" />
@@ -366,7 +372,8 @@ export default function Matumizi() {
                   </div>
                 ) : (
                   <div 
-                    onClick={() => toggleMonth(group.monthKey)}
+                    onTouchStart={(e) => { e.preventDefault(); toggleMonth(group.monthKey); }}
+                    onClick={(e) => { e.preventDefault(); toggleMonth(group.monthKey); }}
                     className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer transition-all duration-200"
                   >
                     <div className="flex items-center">
@@ -415,7 +422,8 @@ export default function Matumizi() {
                           <div className="font-bold text-red-600">{formatCurrency(expense.amount, currency)}</div>
                           {(user?.role === 'admin' || user?.role === 'boss') && (
                             <button 
-                              onClick={() => expense.id && handleDelete(expense.id)} 
+                              onTouchStart={(e) => { e.preventDefault(); expense.id && handleDelete(expense.id); }}
+                              onClick={(e) => { e.preventDefault(); expense.id && handleDelete(expense.id); }}
                               className="mt-2 text-gray-300 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />

@@ -1064,7 +1064,11 @@ export default function Historia() {
   return (
     <div className="p-4 flex flex-col h-full pt-safe pt-safe-standalone">
       <div className="flex items-center mb-4">
-        <button onClick={() => navigate(-1)} className="mr-3 p-2 bg-white rounded-full shadow-sm border border-gray-100 cursor-pointer">
+        <button 
+          onTouchStart={(e) => { e.preventDefault(); navigate(-1); }}
+          onClick={(e) => { e.preventDefault(); navigate(-1); }}
+          className="mr-3 p-2 bg-white rounded-full shadow-sm border border-gray-100 cursor-pointer"
+        >
            <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-bold text-gray-800">Historia ya Mauzo</h1>
@@ -1074,13 +1078,15 @@ export default function Historia() {
       {(user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'boss') && (
         <div className="flex bg-gray-200 p-1 rounded-xl mb-6">
           <button 
-            onClick={() => setView('risiti')}
+            onTouchStart={(e) => { e.preventDefault(); setView('risiti'); }}
+            onClick={(e) => { e.preventDefault(); setView('risiti'); }}
             className={`flex-1 py-2 text-sm font-bold rounded-lg flex justify-center items-center transition-colors ${view === 'risiti' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
           >
             <Receipt className="w-4 h-4 mr-2" /> Risiti
           </button>
           <button 
-            onClick={() => setView('ripoti')}
+            onTouchStart={(e) => { e.preventDefault(); setView('ripoti'); }}
+            onClick={(e) => { e.preventDefault(); setView('ripoti'); }}
             className={`flex-1 py-2 text-sm font-bold rounded-lg flex justify-center items-center transition-colors ${view === 'ripoti' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}
           >
             <BarChart3 className="w-4 h-4 mr-2" /> Ripoti
@@ -1103,7 +1109,8 @@ export default function Historia() {
             ].map(f => (
               <button
                 key={f.id}
-                onClick={() => setFilter(f.id)}
+                onTouchStart={(e) => { e.preventDefault(); setFilter(f.id); }}
+                onClick={(e) => { e.preventDefault(); setFilter(f.id); }}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
                   filter === f.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
                 }`}

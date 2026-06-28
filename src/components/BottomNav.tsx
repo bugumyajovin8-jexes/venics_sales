@@ -22,19 +22,37 @@ export default function BottomNav() {
     { to: '/zaidi', icon: Menu, label: 'Zaidi' },
   ];
 
+  // ✅ FIX 1: Navigate on touchStart (fires instantly, before iOS delays click)
+  const handleNav = (
+    e: React.TouchEvent | React.MouseEvent,
+    to: string
+  ) => {
+    e.preventDefault(); // prevents the ghost click that follows touchStart
+    navigate(to);
+  };
+
   return (
-    <div className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center h-[calc(4rem+env(safe-area-inset-bottom))] px-2 pb-[env(safe-area-inset-bottom)] z-50">
+    // ✅ FIX 2 & 3: Optimize bottom gesture area interactions
+    <div 
+      className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center h-[calc(4rem+env(safe-area-inset-bottom))] px-2 pb-[env(safe-area-inset-bottom)] z-50"
+      style={{ touchAction: 'none' }} // disable browser pan/scroll on the nav bar itself
+    >
       {navItems.map((item) => {
         const isActive = location.pathname === item.to;
 
         return (
           <button
             key={item.to}
-            onClick={() => navigate(item.to)}
+            // ✅ FIX 4: Use onTouchStart for iOS, fall back to onClick for desktop/mouse
+            onTouchStart={(e) => handleNav(e, item.to)}
+            onClick={(e) => handleNav(e, item.to)}
             className={`flex flex-col items-center justify-center w-full h-full space-y-1 
               cursor-pointer touch-manipulation select-none active:scale-95
               ${isActive ? 'text-blue-600' : 'text-gray-500'}`}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
+            style={{ 
+              WebkitTapHighlightColor: 'transparent',
+              WebkitTouchCallout: 'none', // ✅ FIX 5: suppress iOS long-press menu
+            }}
           >
             <div className="relative w-6 h-6 flex items-center justify-center">
               {item.to === '/executive' ? (

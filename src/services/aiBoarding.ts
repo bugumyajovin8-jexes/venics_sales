@@ -1,8 +1,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Try custom key first, then fallback to platform default
-const apiKey = import.meta.env.VITE_MY_GEMINI_KEY || process.env.GEMINI_API_KEY;
-const ai = new GoogleGenAI({ apiKey });
+// Lazy-initialize client and set User-Agent header for telemetry as required by guidelines
+function getGoogleGenAI(): GoogleGenAI {
+  const apiKey = import.meta.env.VITE_MY_GEMINI_KEY || (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : undefined);
+  if (!apiKey) {
+    throw new Error("Gemini API Key haijapatikana. Tafadhali weka funguo ya siri ya VITE_MY_GEMINI_KEY kwenye Settings > Secrets.");
+  }
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+}
 
 export interface ExtractedProduct {
   name: string;
@@ -60,12 +72,57 @@ const auditSchema = {
   required: ["audits"]
 };
 
+function translateGeminiError(error: any, defaultMsg: string): Error {
+  console.error("Gemini AI Operation Error:", error);
+  
+  const errorMessage = error?.message || "";
+  const errorMessageLower = errorMessage.toLowerCase();
+  const errorCode = error?.status || error?.code || (error?.error?.code) || "";
+
+  // 1. Safety Blocks
+  if (
+    errorMessageLower.includes("safety") || 
+    errorMessageLower.includes("finishreason: safety") || 
+    errorMessageLower.includes("blocked")
+  ) {
+    return new Error("Venics smart imekataa picha hii kwa sababu za kiusalama (pengine ina taarifa binafsi sana). Tafadhali jaribu picha nyingine au ufunike sehemu nyeti.");
+  }
+
+  // 2. Offline / Network Errors
+  if (
+    errorMessageLower.includes("network") || 
+    errorMessageLower.includes("fetch") || 
+    errorMessageLower.includes("offline") || 
+    errorMessageLower.includes("failed to fetch")
+  ) {
+    return new Error("Inashindwa kuunganishwa kwenye intaneti. Tafadhali kagua mtandao wako na ujaribu tena.");
+  }
+
+  // 3. Unavailable / High Demand (503/500/etc.)
+  if (
+    errorMessageLower.includes("unavailable") || 
+    errorMessageLower.includes("high demand") || 
+    errorMessageLower.includes("spikes in demand") || 
+    errorMessageLower.includes("temporary") ||
+    errorMessageLower.includes("busy") ||
+    errorMessageLower.includes("503") ||
+    errorCode === 503 ||
+    errorCode === 500
+  ) {
+    return new Error("Mfumo wa Venics Smart una unatumiwa sana kwa sasa. Tafadhali subiri sekunde chache na ujaribu tena.");
+  }
+
+  // 4. General Fallback for all other issues (including limits, invalid keys, rate limits)
+  return new Error("Imeshindwa kusoma picha. Hakikisha maandishi yanaonekana vizuri na hakuna kivuli kikubwa.");
+}
+
 export async function auditProductsFromImage(base64Image: string, mimeType: string, currentInventory: {name: string, stock: number}[]): Promise<{name: string, actual_stock: number}[]> {
   try {
     const inventoryContext = currentInventory.map(i => `${i.name} (In system: ${i.stock})`).join(", ");
+    const ai = getGoogleGenAI();
     
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: [
         {
           parts: [
@@ -101,19 +158,16 @@ export async function auditProductsFromImage(base64Image: string, mimeType: stri
     const result = JSON.parse(response.text);
     return result.audits || [];
   } catch (error: any) {
-    console.error("Audit Error:", error);
-    throw error;
+    throw translateGeminiError(error, "Imeshindwa kufanya ukaguzi wa picha. Hakikisha picha inaonyesha rafu vizuri.");
   }
 }
 
 export async function extractProductsFromImage(base64Image: string, mimeType: string): Promise<ExtractedProduct[]> {
   try {
-    if (!apiKey) {
-      throw new Error("Gemini API Key haijapatikana. Tafadhali wasiliana na bosi wako au angalia Settings.");
-    }
+    const ai = getGoogleGenAI();
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: [
         {
           parts: [
@@ -155,20 +209,6 @@ export async function extractProductsFromImage(base64Image: string, mimeType: st
     const result = JSON.parse(response.text);
     return result.products || [];
   } catch (error: any) {
-    console.error("Gemini AI Extraction Error:", error);
-    
-    // Check for specific Gemini errors
-    const errorMessage = error?.message || "";
-    if (errorMessage.includes("quota") || errorMessage.includes("429")) {
-      throw new Error("Umepitisha kikomo cha matumizi ya bure kwa saa hii. Tafadhali jaribu tena baada ya muda mfupi.");
-    }
-    if (errorMessage.includes("safety") || errorMessage.includes("finishReason: SAFETY")) {
-      throw new Error("AI imekataa picha hii kwa sababu ya usalama (pengine ina taarifa binafsi sana). Jaribu kufunika taarifa nyeti.");
-    }
-    if (errorMessage.includes("API_KEY") || errorMessage.includes("api key")) {
-      throw new Error("Kuna tatizo na API Key yako. Tafadhali wasiliana na msaada wa kiufundi.");
-    }
-    
-    throw new Error("Imeshindwa kusoma picha. Hakikisha maandishi yanaonekana vizuri na hakuna kivuli kikubwa.");
+    throw translateGeminiError(error, "Imeshindwa kusoma picha. Hakikisha maandishi yanaonekana vizuri na hakuna kivuli kikubwa.");
   }
 }
