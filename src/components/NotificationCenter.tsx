@@ -116,6 +116,7 @@ export default function NotificationCenter() {
                   </span>
                   <button
                     onClick={() => dismissNotification(activeNotification.id)}
+                    onPointerUp={() => dismissNotification(activeNotification.id)}
                     className="p-1 rounded-full text-slate-400 transition-colors cursor-pointer"
                     title="Ondoa"
                   >
@@ -136,12 +137,14 @@ export default function NotificationCenter() {
               <div className="px-4 pb-4 pt-1 flex items-center justify-end gap-2 bg-slate-50 border-t border-slate-100">
                 <button
                   onClick={() => dismissNotification(activeNotification.id)}
+                  onPointerUp={() => dismissNotification(activeNotification.id)}
                   className="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
                 >
                   Ondoa
                 </button>
                 <button
                   onClick={() => handleSeeMore(activeNotification.page, activeNotification.id)}
+                  onPointerUp={() => handleSeeMore(activeNotification.page, activeNotification.id)}
                   className="text-xs font-bold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl transition-all flex items-center space-x-1 cursor-pointer shadow-sm active:scale-95"
                 >
                   <span>Mengi zaidi</span>
@@ -149,6 +152,7 @@ export default function NotificationCenter() {
                 </button>
                 <button
                   onClick={() => handleReply(activeNotification.chatPrompt, activeNotification.id)}
+                  onPointerUp={() => handleReply(activeNotification.chatPrompt, activeNotification.id)}
                   className="text-xs font-bold text-white bg-indigo-600 px-3.5 py-1.5 rounded-xl transition-all flex items-center space-x-1 cursor-pointer shadow-md active:scale-95"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
@@ -162,9 +166,10 @@ export default function NotificationCenter() {
 
       {/* 2. FLOATING BELL BUTTON & DROP-DOWN PANEL (Positioned beautifully at the top right of Mshauri page) */}
       <div className="fixed top-4 right-4 z-[48] outline-none" ref={dropdownRef}>
-        <button 
+        <button
           id="notification-bell-btn"
           onClick={() => setIsOpen(!isOpen)}
+          onPointerUp={() => setIsOpen(!isOpen)}
           className={`relative flex items-center justify-center p-3 rounded-full shadow-lg border cursor-pointer transition-all duration-300 ${
             hasUnread 
               ? 'bg-amber-500 text-white border-amber-600  focus:ring-4 focus:ring-amber-300 animate-pulse' 
@@ -200,8 +205,9 @@ export default function NotificationCenter() {
                 </div>
                 
                 {hasUnread && (
-                  <button 
+                  <button
                     onClick={() => clearNotificationList()}
+                    onPointerUp={() => clearNotificationList()}
                     className="text-xs text-indigo-200 font-medium bg-white/10 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
                   >
                     Soma Zote
@@ -260,8 +266,9 @@ export default function NotificationCenter() {
                             </div>
                           </div>
 
-                          <button 
+                          <button
                             onClick={() => dismissNotification(notification.id)}
+                            onPointerUp={() => dismissNotification(notification.id)}
                             className="text-gray-400 p-1 rounded-full leading-none transition-colors"
                             title="Futa arifa hii"
                           >
@@ -276,12 +283,14 @@ export default function NotificationCenter() {
                         <div className="flex border-t border-slate-100 mt-2.5 pt-2 items-center justify-end gap-1.5">
                           <button
                             onClick={() => dismissNotification(notification.id)}
+                            onPointerUp={() => dismissNotification(notification.id)}
                             className="text-[10.5px] font-bold text-gray-500 bg-gray-50 px-2.5 py-1 rounded transition-all cursor-pointer"
                           >
                             Ondoa
                           </button>
                           <button
                             onClick={() => handleSeeMore(notification.page, notification.id)}
+                            onPointerUp={() => handleSeeMore(notification.page, notification.id)}
                             className="text-[10.5px] font-bold text-indigo-600 px-2.5 py-1 rounded transition-all flex items-center space-x-0.5 cursor-pointer animate-none"
                           >
                             <span>See More</span>
@@ -289,6 +298,7 @@ export default function NotificationCenter() {
                           </button>
                           <button
                             onClick={() => handleReply(notification.chatPrompt, notification.id)}
+                            onPointerUp={() => handleReply(notification.chatPrompt, notification.id)}
                             className="text-[10.5px] font-bold text-white bg-indigo-600 px-2.5 py-1 rounded transition-all flex items-center space-x-0.5 shadow-sm cursor-pointer animate-none"
                           >
                             <MessageSquare className="w-3 h-3" />

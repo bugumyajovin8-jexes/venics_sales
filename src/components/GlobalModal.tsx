@@ -36,6 +36,10 @@ export const GlobalModal: React.FC = () => {
                 if (modal.onCancel) modal.onCancel();
                 hideModal();
               }}
+              onPointerUp={() => {
+                if (modal.onCancel) modal.onCancel();
+                hideModal();
+              }}
               className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg font-medium"
             >
               Hapana
@@ -43,6 +47,10 @@ export const GlobalModal: React.FC = () => {
           )}
           <button
             onClick={() => {
+              if (modal.onConfirm) modal.onConfirm();
+              hideModal();
+            }}
+            onPointerUp={() => {
               if (modal.onConfirm) modal.onConfirm();
               hideModal();
             }}

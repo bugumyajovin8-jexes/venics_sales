@@ -163,8 +163,9 @@ export default function LicenseGuard({ children }: { children: React.ReactNode }
            </a>
         )}
 
-        <button 
+        <button
           onClick={handleVerify}
+          onPointerUp={handleVerify}
           disabled={syncing}
           className="bg-blue-600 disabled:bg-blue-400 text-white px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 mb-8 active:scale-[0.98] w-full max-w-sm justify-center shadow-lg shadow-blue-600/20"
         >

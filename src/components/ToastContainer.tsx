@@ -28,8 +28,9 @@ export default function ToastContainer() {
               {toast.type === 'info' && <Info className="w-5 h-5 text-blue-600" />}
             </div>
             <p className="text-sm font-bold flex-1">{toast.message}</p>
-            <button 
+            <button
               onClick={() => removeToast(toast.id)}
+              onPointerUp={() => removeToast(toast.id)}
               className="ml-3 p-1 rounded-full transition-colors"
             >
               <X className="w-4 h-4 opacity-50" />

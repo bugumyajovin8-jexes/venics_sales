@@ -179,8 +179,9 @@ export default function SetupShop() {
             </div>
           )}
 
-          <button 
+          <button
             onClick={checkInvitationManual}
+            onPointerUp={checkInvitationManual}
             disabled={isChecking}
             className="w-full bg-blue-600 disabled:bg-gray-300 text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 mb-6"
           >
@@ -188,8 +189,9 @@ export default function SetupShop() {
             Kagua Mwaliko Sasa
           </button>
 
-          <button 
+          <button
             onClick={() => { setIsEmployeeMode(false); setError(''); }}
+            onPointerUp={() => { setIsEmployeeMode(false); setError(''); }}
             className="text-gray-500 font-medium underline"
           >
             Rudi Nyuma (Mimi ni Bosi)
@@ -255,8 +257,9 @@ export default function SetupShop() {
 
         <div className="mt-8 pt-6 border-t border-gray-100">
           <p className="text-sm text-gray-500 mb-3">Wewe ni mfanyakazi na sio mmiliki wa duka?</p>
-          <button 
+          <button
             onClick={() => setIsEmployeeMode(true)}
+            onPointerUp={() => setIsEmployeeMode(true)}
             className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-xl transition-colors"
           >
             Mimi ni Mfanyakazi

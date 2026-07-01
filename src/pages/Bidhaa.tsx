@@ -310,9 +310,10 @@ export default function Bidhaa() {
                 Zilizopo: {validStock}
               </span>
               {canManageProducts && (
-                <button 
+                <button
                   onTouchStart={(e) => { e.preventDefault(); setStockModalProduct(product); }}
                   onClick={(e) => { e.preventDefault(); setStockModalProduct(product); }}
+                  onPointerUp={(e) => { e.preventDefault(); setStockModalProduct(product); }}
                   className="ml-2 bg-blue-100 text-blue-700 p-1 rounded-md transition-colors relative after:absolute after:content-[''] after:-inset-3"
                   title="Ongeza idadi ya bidhaa"
                 >
@@ -320,9 +321,10 @@ export default function Bidhaa() {
                 </button>
               )}
               {canManageProducts && isExpiryEnabled && (
-                <button 
+                <button
                   onTouchStart={(e) => { e.preventDefault(); setBatchModalProduct(product); }}
                   onClick={(e) => { e.preventDefault(); setBatchModalProduct(product); }}
+                  onPointerUp={(e) => { e.preventDefault(); setBatchModalProduct(product); }}
                   className="ml-2 bg-orange-100 text-orange-700 p-1 rounded-md transition-colors relative after:absolute after:content-[''] after:-inset-3"
                   title="Simamia tarehe za kuisha"
                 >
@@ -339,16 +341,18 @@ export default function Bidhaa() {
           </div>
           {canManageProducts && (
             <div className="flex space-x-2 shrink-0">
-              <button 
+              <button
                 onTouchStart={(e) => { e.preventDefault(); setEditingProduct(product); }}
                 onClick={(e) => { e.preventDefault(); setEditingProduct(product); }}
+                onPointerUp={(e) => { e.preventDefault(); setEditingProduct(product); }}
                 className="p-2 text-blue-600 bg-blue-50 rounded-lg"
               >
                 <Edit className="w-5 h-5" />
               </button>
-              <button 
+              <button
                 onTouchStart={(e) => { e.preventDefault(); product.id && handleDelete(product.id); }}
                 onClick={(e) => { e.preventDefault(); product.id && handleDelete(product.id); }}
+                onPointerUp={(e) => { e.preventDefault(); product.id && handleDelete(product.id); }}
                 className="p-2 text-red-600 bg-red-50 rounded-lg"
               >
                 <Trash2 className="w-5 h-5" />
@@ -513,7 +517,7 @@ export default function Bidhaa() {
         <div className="p-10 text-center">
           <h2 className="text-xl font-bold text-red-600">Kizuizi</h2>
           <p className="text-gray-500 mt-2">Huna ruhusa ya kuongeza au kuhariri bidhaa.</p>
-          <button onClick={() => { setIsAdding(false); setEditingProduct(null); }} className="mt-4 text-blue-600 font-bold underline">Rudi</button>
+          <button onClick={() => { setIsAdding(false); setEditingProduct(null); }} onPointerUp={() => { setIsAdding(false); setEditingProduct(null); }} className="mt-4 text-blue-600 font-bold underline">Rudi</button>
         </div>
       );
     }
@@ -531,9 +535,19 @@ export default function Bidhaa() {
     return (
       <div className="p-4">
         <div className="flex items-center mb-6">
-          <button 
-            onClick={() => { 
-              setIsAdding(false); 
+          <button
+            onClick={() => {
+              setIsAdding(false);
+              setEditingProduct(null);
+              setFormBuyPrice('');
+              setFormSellPrice('');
+              setFormStock('');
+              setFormLowStock('5');
+              setFormExpiryDate('');
+              setFormNotifyDays('30');
+            }}
+            onPointerUp={() => {
+              setIsAdding(false);
               setEditingProduct(null);
               setFormBuyPrice('');
               setFormSellPrice('');
@@ -652,16 +666,20 @@ export default function Bidhaa() {
               </div>
               
               <div className="p-4 bg-gray-50 border-t border-gray-100 flex space-x-3">
-                <button 
+                <button
                   type="button"
                   onClick={() => setGuardrailWarning(null)}
+                  onPointerUp={() => setGuardrailWarning(null)}
                   className="flex-1 py-3 bg-gray-200 text-gray-800 font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"
                 >
                   Hapana, Rekebisha
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={async () => {
+                    await guardrailWarning.onConfirm();
+                  }}
+                  onPointerUp={async () => {
                     await guardrailWarning.onConfirm();
                   }}
                   className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"
@@ -682,9 +700,10 @@ export default function Bidhaa() {
         <div className="flex items-center justify-between overflow-x-auto no-scrollbar py-0.5">
           <div className="flex items-center space-x-1.5">
             {isBoss() && products.length > 0 && (
-              <button 
+              <button
                 onTouchStart={(e) => { e.preventDefault(); handleDeleteAll(); }}
                 onClick={(e) => { e.preventDefault(); handleDeleteAll(); }}
+                onPointerUp={(e) => { e.preventDefault(); handleDeleteAll(); }}
                 className="bg-red-50 text-red-600 p-2 rounded-full border border-red-100 shrink-0 cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
                 title="Futa Bidhaa Zote"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -693,9 +712,10 @@ export default function Bidhaa() {
               </button>
             )}
             {canManageProducts && (
-              <button 
+              <button
                 onTouchStart={(e) => { e.preventDefault(); setIsQuickAddOpen(!isQuickAddOpen); }}
                 onClick={(e) => { e.preventDefault(); setIsQuickAddOpen(!isQuickAddOpen); }}
+                onPointerUp={(e) => { e.preventDefault(); setIsQuickAddOpen(!isQuickAddOpen); }}
                 className={`p-2 rounded-full border transition-colors shrink-0 ${isQuickAddOpen ? 'bg-orange-600 text-white border-orange-700' : 'bg-orange-50 text-orange-600 border-orange-100'}`}
                 title="Quick Add Mode (Chat)"
               >
@@ -712,9 +732,10 @@ export default function Bidhaa() {
               </button>
             )*/}
             {canManageProducts && (
-              <button 
+              <button
                 onTouchStart={(e) => { e.preventDefault(); setIsAIScanModalOpen(true); }}
                 onClick={(e) => { e.preventDefault(); setIsAIScanModalOpen(true); }}
+                onPointerUp={(e) => { e.preventDefault(); setIsAIScanModalOpen(true); }}
                 className="bg-green-50 text-green-600 p-2 rounded-full border border-green-100 shrink-0 cursor-pointer"
                 title="Sajili kwa Venics Smart (Picha)"
               >
@@ -722,9 +743,10 @@ export default function Bidhaa() {
               </button>
             )}
             {canManageProducts && (
-              <button 
+              <button
                 onTouchStart={(e) => { e.preventDefault(); setIsImportModalOpen(true); }}
                 onClick={(e) => { e.preventDefault(); setIsImportModalOpen(true); }}
+                onPointerUp={(e) => { e.preventDefault(); setIsImportModalOpen(true); }}
                 className="bg-white text-gray-700 p-2 rounded-full border border-gray-100 shrink-0 cursor-pointer"
                 title="Ingiza kutoka Excel"
               >
@@ -732,9 +754,10 @@ export default function Bidhaa() {
               </button>
             )}
           </div>
-          <button 
+          <button
             onTouchStart={(e) => { e.preventDefault(); setIsAdding(true); }}
             onClick={(e) => { e.preventDefault(); setIsAdding(true); }}
+            onPointerUp={(e) => { e.preventDefault(); setIsAdding(true); }}
             className="bg-blue-600 text-white p-2.5 rounded-full shadow-lg transition-all shrink-0 ml-1 active:scale-95 cursor-pointer touch-manipulation select-none"
             title="Sajili Bidhaa Mpya"
           >
@@ -743,9 +766,10 @@ export default function Bidhaa() {
         </div>
         <div className={`flex items-center px-2 ${lossProducts.length > 0 ? 'justify-between' : 'justify-center'}`}>
           {lossProducts.length > 0 && (
-            <button 
+            <button
               onTouchStart={(e) => { e.preventDefault(); setIsLossModalOpen(true); }}
               onClick={(e) => { e.preventDefault(); setIsLossModalOpen(true); }}
+              onPointerUp={(e) => { e.preventDefault(); setIsLossModalOpen(true); }}
               className="flex items-center space-x-1 border border-red-200 bg-red-50 text-red-600 px-3 py-1 rounded-full shadow-sm cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
             >
               <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
@@ -857,9 +881,10 @@ export default function Bidhaa() {
               )}
               
               <div className="flex space-x-3">
-                <button 
+                <button
                   type="button"
                   onClick={() => { setStockModalProduct(null); setStockToAdd(''); }}
+                  onPointerUp={() => { setStockModalProduct(null); setStockToAdd(''); }}
                   className="flex-1 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl"
                 >
                   Ghairi
@@ -941,8 +966,9 @@ export default function Bidhaa() {
               )}
             </div>
             
-            <button 
+            <button
               onClick={() => setBatchModalProduct(null)}
+              onPointerUp={() => setBatchModalProduct(null)}
               className="w-full py-4 bg-gray-800 text-white font-bold rounded-xl shadow-lg"
             >
               Funga
@@ -1000,8 +1026,9 @@ export default function Bidhaa() {
             </div>
             
             <div className="p-4 bg-gray-50 border-t border-gray-100">
-              <button 
+              <button
                 onClick={() => setIsLossModalOpen(false)}
+                onPointerUp={() => setIsLossModalOpen(false)}
                 className="w-full py-4 bg-gray-800 text-white font-bold rounded-xl shadow-lg cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
               >
                 Funga
@@ -1042,14 +1069,18 @@ export default function Bidhaa() {
             </div>
             
             <div className="p-4 bg-gray-50 border-t border-gray-100 flex space-x-3">
-              <button 
+              <button
                 onClick={() => setGuardrailWarning(null)}
+                onPointerUp={() => setGuardrailWarning(null)}
                 className="flex-1 py-3 bg-gray-200 text-gray-800 font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"
               >
                 Hapana, Rekebisha
               </button>
-              <button 
+              <button
                 onClick={async () => {
+                  await guardrailWarning.onConfirm();
+                }}
+                onPointerUp={async () => {
                   await guardrailWarning.onConfirm();
                 }}
                 className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer"

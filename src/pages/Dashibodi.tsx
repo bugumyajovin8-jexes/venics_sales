@@ -395,7 +395,7 @@ export default function Dashibodi() {
 
       {/* Quick Access Buttons */}
       <div className="grid grid-cols-2 gap-4">
-        <button 
+        <button
           onTouchStart={(e) => {
             e.preventDefault();
             if (!boss && !isFeatureEnabled('staff_expense_management')) {
@@ -412,6 +412,14 @@ export default function Dashibodi() {
               navigate('/matumizi');
             }
           }}
+          onPointerUp={(e) => {
+            e.preventDefault();
+            if (!boss && !isFeatureEnabled('staff_expense_management')) {
+              showToast('Hauna ruhusa ya kuona/kuongeza matumizi.', 'error');
+            } else {
+              navigate('/matumizi');
+            }
+          }}
           className={`flex items-center justify-center py-3.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold transition-all cursor-pointer select-none touch-manipulation ${
             !boss && !isFeatureEnabled('staff_expense_management') 
               ? 'opacity-50 text-gray-400 cursor-not-allowed' 
@@ -421,9 +429,10 @@ export default function Dashibodi() {
           <DollarSign className={`w-4 h-4 mr-1.5 ${!boss && !isFeatureEnabled('staff_expense_management') ? 'text-gray-400' : 'text-red-500'}`} />
           {!boss && !isFeatureEnabled('staff_expense_management') ? 'Matumizi (Zuiwa)' : 'Matumizi'}
         </button>
-        <button 
+        <button
           onTouchStart={(e) => { e.preventDefault(); navigate('/historia'); }}
           onClick={(e) => { e.preventDefault(); navigate('/historia'); }}
+          onPointerUp={(e) => { e.preventDefault(); navigate('/historia'); }}
           className="flex items-center justify-center py-3.5 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-bold text-gray-700 active:scale-95 active:bg-gray-50 transition-all cursor-pointer select-none touch-manipulation"
         >
           <Clock className="w-4 h-4 mr-1.5 text-blue-500" />
@@ -435,9 +444,10 @@ export default function Dashibodi() {
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-800">Muhtasari wa Mwezi</h2>
-          <button 
+          <button
             onTouchStart={(e) => { e.preventDefault(); navigate('/historia'); }}
             onClick={(e) => { e.preventDefault(); navigate('/historia'); }}
+            onPointerUp={(e) => { e.preventDefault(); navigate('/historia'); }}
             className="text-sm font-medium text-blue-600 flex items-center bg-blue-50 px-3 py-1 rounded-full"
           >
             Historia <ChevronRight className="w-4 h-4 ml-1" />
@@ -599,7 +609,7 @@ export default function Dashibodi() {
                 <AlertTriangle className="w-6 h-6 mr-2" />
                 <h2 className="text-xl font-bold">Bidhaa Zinazoisha</h2>
               </div>
-              <button onClick={() => { setShowLowStockModal(false); setSelectedProductForStock(null); }} className="p-2 bg-gray-100 rounded-full">
+              <button onClick={() => { setShowLowStockModal(false); setSelectedProductForStock(null); }} onPointerUp={() => { setShowLowStockModal(false); setSelectedProductForStock(null); }} className="p-2 bg-gray-100 rounded-full">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
@@ -616,8 +626,9 @@ export default function Dashibodi() {
                         </p>
                       </div>
                       {canManageStock && (
-                        <button 
+                        <button
                           onClick={() => setSelectedProductForStock(selectedProductForStock?.id === product.id ? null : product)}
+                          onPointerUp={() => setSelectedProductForStock(selectedProductForStock?.id === product.id ? null : product)}
                           className={`p-2 rounded-xl transition-colors ${selectedProductForStock?.id === product.id ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}
                         >
                           {selectedProductForStock?.id === product.id ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -676,8 +687,9 @@ export default function Dashibodi() {
               )}
             </div>
             
-            <button 
+            <button
               onClick={() => { setShowLowStockModal(false); setSelectedProductForStock(null); }}
+              onPointerUp={() => { setShowLowStockModal(false); setSelectedProductForStock(null); }}
               className="w-full mt-6 py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl"
             >
               Funga
@@ -694,7 +706,7 @@ export default function Dashibodi() {
                 <AlertCircle className="w-6 h-6 mr-2 flex-shrink-0" />
                 <h2 className="text-xl font-bold">Hasara Inayoweza Kuepukika</h2>
               </div>
-              <button onClick={() => setShowLossModal(false)} className="p-2 bg-gray-100 rounded-full">
+              <button onClick={() => setShowLossModal(false)} onPointerUp={() => setShowLossModal(false)} className="p-2 bg-gray-100 rounded-full">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
@@ -712,6 +724,7 @@ export default function Dashibodi() {
                     </p>
                     <button
                       onClick={() => handleVerifyProductPricing(product.id)}
+                      onPointerUp={() => handleVerifyProductPricing(product.id)}
                       className="bg-red-200 text-red-900 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-red-300 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
                     >
                       <Check className="w-3.5 h-3.5" /> Bei ipo Sawa
@@ -725,15 +738,17 @@ export default function Dashibodi() {
             </div>
             
             <div className="flex space-x-3 mt-6">
-              <button 
+              <button
                 onClick={() => setShowLossModal(false)}
+                onPointerUp={() => setShowLossModal(false)}
                 className="flex-1 py-4 bg-gray-200 text-gray-800 font-bold rounded-2xl cursor-pointer hover:bg-gray-300 active:scale-95 transition-all"
               >
                 Funga
               </button>
               {pricingLossProducts.length > 0 && (
-                <button 
+                <button
                   onClick={handleVerifyAllProductPricing}
+                  onPointerUp={handleVerifyAllProductPricing}
                   className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-1.5"
                 >
                   <Check className="w-4 h-4" /> Zote zipo Sawa
@@ -753,7 +768,7 @@ export default function Dashibodi() {
                 <AlertCircle className="w-6 h-6 mr-2 flex-shrink-0" />
                 <h2 className="text-xl font-bold text-amber-700">Uhakiki wa Bei (Uwiano)</h2>
               </div>
-              <button onClick={() => setShowImplausibleModal(false)} className="p-2 bg-gray-100 rounded-full">
+              <button onClick={() => setShowImplausibleModal(false)} onPointerUp={() => setShowImplausibleModal(false)} className="p-2 bg-gray-100 rounded-full">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
@@ -773,6 +788,7 @@ export default function Dashibodi() {
                       </p>
                       <button
                         onClick={() => handleVerifyProductPricing(product.id)}
+                        onPointerUp={() => handleVerifyProductPricing(product.id)}
                         className="bg-amber-200 text-amber-905 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-amber-300 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
                       >
                         <Check className="w-3.5 h-3.5" /> Bei ipo Sawa
@@ -787,15 +803,17 @@ export default function Dashibodi() {
             </div>
             
             <div className="flex space-x-3 mt-6">
-              <button 
+              <button
                 onClick={() => setShowImplausibleModal(false)}
+                onPointerUp={() => setShowImplausibleModal(false)}
                 className="flex-1 py-4 bg-gray-200 text-gray-800 font-bold rounded-2xl cursor-pointer hover:bg-gray-300 active:scale-95 transition-all"
               >
                 Funga
               </button>
               {pricingImplausibleProducts.length > 0 && (
-                <button 
+                <button
                   onClick={handleVerifyAllProductPricing}
+                  onPointerUp={handleVerifyAllProductPricing}
                   className="flex-1 py-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-1.5"
                 >
                   <Check className="w-4 h-4" /> Zote zipo Sawa

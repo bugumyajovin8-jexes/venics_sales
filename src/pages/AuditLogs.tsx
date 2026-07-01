@@ -103,6 +103,7 @@ function MonthSection({
       {/* Month Header */}
       <button
         onClick={onToggle}
+        onPointerUp={onToggle}
         className={`flex items-center justify-between p-4 rounded-2xl transition-all ${
           isCurrentMonth 
             ? 'bg-indigo-600 text-white shadow-md' 
@@ -417,14 +418,15 @@ export default function AuditLogs() {
     <div className="p-4 flex flex-col h-full bg-gray-50 pt-safe pt-safe-standalone">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
-          <button onClick={() => navigate(-1)} className="mr-3 p-2 bg-white rounded-full shadow-sm">
+          <button onClick={() => navigate(-1)} onPointerUp={() => navigate(-1)} className="mr-3 p-2 bg-white rounded-full shadow-sm">
              <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-2xl font-bold text-gray-900">Mabadiliko ya Bidhaa</h1>
         </div>
         {sortedMonthKeys.length > 0 && (
-          <button 
+          <button
             onClick={handleDeleteAll}
+            onPointerUp={handleDeleteAll}
             className="flex items-center space-x-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl transition-colors border border-red-100"
           >
             <Trash2 className="w-4 h-4" />

@@ -77,8 +77,9 @@ export default function ResetPassword() {
               <CheckCircle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
               <p>Nenosiri lako limebadilishwa kwa mafanikio! Unahamishiwa kwenye ukurasa wa kuingia...</p>
             </div>
-            <button 
+            <button
               onClick={() => navigate('/login')}
+              onPointerUp={() => navigate('/login')}
               className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-md flex items-center justify-center"
             >
               Ingia Sasa <ArrowRight className="w-4 h-4 ml-2" />
@@ -101,6 +102,7 @@ export default function ResetPassword() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  onPointerUp={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}

@@ -51,6 +51,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
           <p className="text-gray-600 mb-6 max-w-md">Programu imeshindwa kuendelea. Tafadhali jaribu kupakia upya ukurasa.</p>
           <button
             onClick={() => window.location.reload()}
+            onPointerUp={() => window.location.reload()}
             className="bg-red-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg"
           >
             Pakia Upya

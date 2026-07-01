@@ -148,7 +148,7 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
             </h2>
             <p className="text-sm text-gray-500">Piga picha risiti au rafu kusajili bidhaa</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full transition-colors">
+          <button onClick={onClose} onPointerUp={onClose} className="p-2 rounded-full transition-colors">
             <X className="w-6 h-6 text-gray-500" />
           </button>
         </div>
@@ -231,8 +231,9 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
               <div className="flex justify-between items-center mb-2">
                 <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">Bidhaa Zilizotambuliwa ({extractedProducts.length})</p>
                 {image && (
-                   <button 
+                   <button
                     onClick={() => setStep('upload')}
+                    onPointerUp={() => setStep('upload')}
                     className="text-xs font-bold text-blue-600"
                    >
                     Badilisha Picha
@@ -252,7 +253,7 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
                           placeholder="Jina la bidhaa"
                         />
                       </div>
-                      <button onClick={() => removeItem(index)} className="p-1 text-gray-400">
+                      <button onClick={() => removeItem(index)} onPointerUp={() => removeItem(index)} className="p-1 text-gray-400">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -307,8 +308,9 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
               {extractedProducts.length === 0 && (
                 <div className="text-center py-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                   <p className="text-gray-500 italic">Hakuna bidhaa zilizotambuliwa. Jaribu kupiga picha upya.</p>
-                  <button 
+                  <button
                     onClick={() => setStep('upload')}
+                    onPointerUp={() => setStep('upload')}
                     className="mt-4 text-blue-600 font-bold"
                   >
                     Piga Picha Tena
@@ -322,8 +324,9 @@ export default function AIScanModal({ isOpen, onClose, shopId, onSuccess }: AISc
         {/* Footer */}
         {step === 'review' && extractedProducts.length > 0 && (
           <div className="p-6 border-t border-gray-100 bg-white sticky bottom-0">
-            <button 
+            <button
               onClick={handleSave}
+              onPointerUp={handleSave}
               className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-100 transition-all flex items-center justify-center"
             >
               <Check className="w-5 h-5 mr-2" /> Hifadhi Bidhaa Zote

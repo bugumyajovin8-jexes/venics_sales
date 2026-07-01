@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useRef, useCallback } from 'react';
 import { LayoutDashboard, Package, ShoppingCart, CreditCard, Menu, Zap } from 'lucide-react';
 import { useStore } from '../store';
 import VenicsLogo from './VenicsLogo';
@@ -6,12 +7,13 @@ import VenicsLogo from './VenicsLogo';
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
+  const lastNav = useRef(0);
 
   const user = useStore(state => state.user);
   const cart = useStore(state => state.cart);
   const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  const isBoss = user?.role === 'admin' || user?.role === 'boss' || user?.role === 'superadmin';
+  const isBoss = user?.role === 'boss';
 
   const navItems = [
     ...(isBoss ? [{ to: '/executive', icon: Zap, label: 'V Smart' }] : []),
@@ -22,20 +24,24 @@ export default function BottomNav() {
     { to: '/zaidi', icon: Menu, label: 'Zaidi' },
   ];
 
-  // ✅ FIX 1: Navigate on touchStart (fires instantly, before iOS delays click)
-  const handleNav = (
-    e: React.TouchEvent | React.MouseEvent,
-    to: string
-  ) => {
-    e.preventDefault(); // prevents the ghost click that follows touchStart
-    navigate(to);
-  };
+  /* iOS Safari sometimes fails to synthesize click events after touchend,
+     causing buttons to need a double-tap. Using pointerup bypasses WebKit's
+     click-synthesis pipeline entirely — it fires directly from the native
+     touch without going through the synthesized-click path that can fail.
+     The 300ms debounce prevents the subsequent (sometimes synthesized) click
+     event from triggering a second navigation. */
+  const safeNavigate = useCallback((to: string) => {
+    const now = Date.now();
+    if (now - lastNav.current > 300) {
+      lastNav.current = now;
+      navigate(to);
+    }
+  }, [navigate]);
 
   return (
-    // ✅ FIX 2 & 3: Optimize bottom gesture area interactions
-    <div 
+    <div
       className="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center h-[calc(4rem+env(safe-area-inset-bottom))] px-2 pb-[env(safe-area-inset-bottom)] z-50"
-      style={{ touchAction: 'none' }} // disable browser pan/scroll on the nav bar itself
+      style={{ touchAction: 'manipulation' }}
     >
       {navItems.map((item) => {
         const isActive = location.pathname === item.to;
@@ -43,20 +49,20 @@ export default function BottomNav() {
         return (
           <button
             key={item.to}
-            // ✅ FIX 4: Use onTouchStart for iOS, fall back to onClick for desktop/mouse
-            onTouchStart={(e) => handleNav(e, item.to)}
-            onClick={(e) => handleNav(e, item.to)}
-            className={`flex flex-col items-center justify-center w-full h-full space-y-1 
-              cursor-pointer touch-manipulation select-none active:scale-95
+            onPointerUp={() => safeNavigate(item.to)}
+            onClick={() => safeNavigate(item.to)}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1
+              cursor-pointer touch-manipulation select-none
               ${isActive ? 'text-blue-600' : 'text-gray-500'}`}
-            style={{ 
+            style={{
               WebkitTapHighlightColor: 'transparent',
-              WebkitTouchCallout: 'none', // ✅ FIX 5: suppress iOS long-press menu
+              WebkitTouchCallout: 'none',
+              touchAction: 'manipulation',
             }}
           >
             <div className="relative w-6 h-6 flex items-center justify-center">
               {item.to === '/executive' ? (
-                <VenicsLogo size={24} animate="idle" />
+                <VenicsLogo size={24} animate="none" />
               ) : (
                 <item.icon className="w-6 h-6 shrink-0" />
               )}

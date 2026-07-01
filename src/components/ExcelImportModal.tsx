@@ -327,7 +327,7 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
       <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-800">Ingiza Bidhaa (Excel)</h2>
-          <button onClick={onClose} className="p-2 rounded-full transition-colors">
+          <button onClick={onClose} onPointerUp={onClose} className="p-2 rounded-full transition-colors">
             <X className="w-6 h-6 text-gray-500" />
           </button>
         </div>
@@ -375,8 +375,9 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
                   </div>
                 ))}
               </div>
-              <button 
+              <button
                 onClick={() => setStep('options')}
+                onPointerUp={() => setStep('options')}
                 disabled={!mapping.name}
                 className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl mt-6 disabled:opacity-50 shadow-lg shadow-blue-100"
               >
@@ -426,14 +427,16 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
                       <p className="font-bold text-gray-800 text-sm">Bei ya Kununua tupu</p>
                     </div>
                     <div className="flex bg-white rounded-lg p-1 border border-gray-200">
-                      <button 
+                      <button
                         onClick={() => setOptions({...options, rejectEmptyBuyPrice: true})}
+                        onPointerUp={() => setOptions({...options, rejectEmptyBuyPrice: true})}
                         className={`px-3 py-1 text-xs font-bold rounded-md ${options.rejectEmptyBuyPrice ? 'bg-red-500 text-white' : 'text-gray-500'}`}
                       >
                         Kataa
                       </button>
-                      <button 
+                      <button
                         onClick={() => setOptions({...options, rejectEmptyBuyPrice: false})}
+                        onPointerUp={() => setOptions({...options, rejectEmptyBuyPrice: false})}
                         className={`px-3 py-1 text-xs font-bold rounded-md ${!options.rejectEmptyBuyPrice ? 'bg-green-500 text-white' : 'text-gray-500'}`}
                       >
                         Weka 0
@@ -446,14 +449,16 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
                       <p className="font-bold text-gray-800 text-sm">Bei ya Kuuza tupu</p>
                     </div>
                     <div className="flex bg-white rounded-lg p-1 border border-gray-200">
-                      <button 
+                      <button
                         onClick={() => setOptions({...options, rejectEmptySellPrice: true})}
+                        onPointerUp={() => setOptions({...options, rejectEmptySellPrice: true})}
                         className={`px-3 py-1 text-xs font-bold rounded-md ${options.rejectEmptySellPrice ? 'bg-red-500 text-white' : 'text-gray-500'}`}
                       >
                         Kataa
                       </button>
-                      <button 
+                      <button
                         onClick={() => setOptions({...options, rejectEmptySellPrice: false})}
+                        onPointerUp={() => setOptions({...options, rejectEmptySellPrice: false})}
                         className={`px-3 py-1 text-xs font-bold rounded-md ${!options.rejectEmptySellPrice ? 'bg-green-500 text-white' : 'text-gray-500'}`}
                       >
                         Weka 0
@@ -470,8 +475,9 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
                       <p className="font-bold text-gray-800 text-sm">Unganisha (Merge)</p>
                       <p className="text-[10px] text-gray-500">Jina, Bei na Tarehe zikifanana</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setOptions({...options, mergeDuplicates: !options.mergeDuplicates})}
+                      onPointerUp={() => setOptions({...options, mergeDuplicates: !options.mergeDuplicates})}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${options.mergeDuplicates ? 'bg-blue-600' : 'bg-gray-200'}`}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${options.mergeDuplicates ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -481,14 +487,16 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
               </div>
 
               <div className="flex space-x-3">
-                <button 
+                <button
                   onClick={() => setStep('mapping')}
+                  onPointerUp={() => setStep('mapping')}
                   className="flex-1 py-4 border border-gray-200 text-gray-600 font-bold rounded-2xl"
                 >
                   Rudi
                 </button>
-                <button 
+                <button
                   onClick={handleImport}
+                  onPointerUp={handleImport}
                   className="flex-2 bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-100"
                 >
                   Anza Kuingiza
@@ -545,8 +553,9 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
               {results.failed.length > 0 && (
                 <div className="mb-6">
                   <p className="text-sm text-gray-500 mb-3">Kuna makosa yamejitokeza. Unaweza kupakua faili la Excel lenye data zilizofeli pekee ili kuzirekebisha:</p>
-                  <button 
+                  <button
                     onClick={downloadErrors}
+                    onPointerUp={downloadErrors}
                     className="flex items-center justify-center space-x-2 w-full p-4 bg-gray-100 text-gray-700 rounded-2xl font-bold transition-colors"
                   >
                     <Download className="w-5 h-5" />
@@ -555,8 +564,9 @@ export default function ExcelImportModal({ isOpen, onClose, shopId }: ExcelImpor
                 </div>
               )}
 
-              <button 
+              <button
                 onClick={onClose}
+                onPointerUp={onClose}
                 className="w-full bg-gray-800 text-white font-bold py-4 rounded-2xl shadow-lg"
               >
                 Kamilisha

@@ -235,9 +235,10 @@ export default function Madeni() {
                 <div className="mb-3 bg-gray-50 p-2 rounded-lg">
                   <div className="flex justify-between items-center mb-1">
                     <p className="text-[10px] font-bold text-gray-400 uppercase">Bidhaa:</p>
-                    <button 
+                    <button
                       onTouchStart={(e) => { e.preventDefault(); setShowHistory(showHistory === debt.id ? null : debt.id); }}
                       onClick={(e) => { e.preventDefault(); setShowHistory(showHistory === debt.id ? null : debt.id); }}
+                      onPointerUp={(e) => { e.preventDefault(); setShowHistory(showHistory === debt.id ? null : debt.id); }}
                       className="text-[10px] font-bold text-blue-600 uppercase flex items-center"
                     >
                       <History className="w-3 h-3 mr-1" /> Historia
@@ -268,25 +269,28 @@ export default function Madeni() {
                 </div>
                 
                 <div className="flex flex-wrap sm:flex-nowrap gap-2 pt-3 border-t border-gray-100">
-                  <button 
+                  <button
                     onTouchStart={(e) => { e.preventDefault(); setSelectedDebt(debt); }}
                     onClick={(e) => { e.preventDefault(); setSelectedDebt(debt); }}
+                    onPointerUp={(e) => { e.preventDefault(); setSelectedDebt(debt); }}
                     className="flex-1 min-w-[80px] flex items-center justify-center text-[11px] font-bold text-blue-600 bg-blue-50 py-2.5 rounded-xl transition-all"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" />
                     Lipa Kidogo
                   </button>
-                  <button 
+                  <button
                     onTouchStart={(e) => { e.preventDefault(); handleFullPayment(debt); }}
                     onClick={(e) => { e.preventDefault(); handleFullPayment(debt); }}
+                    onPointerUp={(e) => { e.preventDefault(); handleFullPayment(debt); }}
                     className="flex-1 min-w-[80px] flex items-center justify-center text-[11px] font-bold text-green-600 bg-green-50 py-2.5 rounded-xl transition-all"
                   >
                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
                     Lipa Zote
                   </button>
-                  <button 
+                  <button
                     onTouchStart={(e) => { e.preventDefault(); openWhatsAppModal(debt, remaining); }}
                     onClick={(e) => { e.preventDefault(); openWhatsAppModal(debt, remaining); }}
+                    onPointerUp={(e) => { e.preventDefault(); openWhatsAppModal(debt, remaining); }}
                     className="flex-1 min-w-[130px] flex items-center justify-center text-[11px] font-bold text-emerald-700 bg-emerald-50 py-2.5 rounded-xl border border-emerald-100 transition-all shadow-sm"
                   >
                     <span className="mr-1 text-[13px]">💬</span>
@@ -305,7 +309,7 @@ export default function Madeni() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-800">Rekodi Malipo</h3>
-              <button onClick={() => setSelectedDebt(null)} className="p-1 text-gray-400">
+              <button onClick={() => setSelectedDebt(null)} onPointerUp={() => setSelectedDebt(null)} className="p-1 text-gray-400">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -332,14 +336,16 @@ export default function Madeni() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button 
+                <button
                   onClick={() => setSelectedDebt(null)}
+                  onPointerUp={() => setSelectedDebt(null)}
                   className="py-3 bg-gray-100 text-gray-600 rounded-xl font-bold"
                 >
                   Ghairi
                 </button>
-                <button 
+                <button
                   onClick={() => handleRecordPayment(selectedDebt.id, Number(paymentAmount))}
+                  onPointerUp={() => handleRecordPayment(selectedDebt.id, Number(paymentAmount))}
                   disabled={!paymentAmount || Number(paymentAmount) <= 0}
                   className="py-3 bg-blue-600 text-white rounded-xl font-bold shadow-md shadow-blue-200 disabled:opacity-50"
                 >
@@ -363,8 +369,9 @@ export default function Madeni() {
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">Tuma ujumbe wa upole wa kukumbusha deni</p>
               </div>
-              <button 
-                onClick={() => setWhatsappDebt(null)} 
+              <button
+                onClick={() => setWhatsappDebt(null)}
+                onPointerUp={() => setWhatsappDebt(null)}
                 className="p-1 px-2.5 py-1.5 text-slate-400 rounded-full text-sm font-bold"
               >
                 ✕
@@ -409,14 +416,16 @@ export default function Madeni() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
-                <button 
+                <button
                   onClick={() => setWhatsappDebt(null)}
+                  onPointerUp={() => setWhatsappDebt(null)}
                   className="py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs"
                 >
                   Ghairi
                 </button>
-                <button 
+                <button
                   onClick={executeWhatsAppSend}
+                  onPointerUp={executeWhatsAppSend}
                   disabled={!whatsappPhone.trim() || !customMessage.trim()}
                   className="py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-100 flex items-center justify-center space-x-1 disabled:opacity-50 transition-all cursor-pointer cursor-pointer touch-manipulation select-none active:scale-95 transition-all"
                  style={{ WebkitTapHighlightColor: 'transparent' }}>
